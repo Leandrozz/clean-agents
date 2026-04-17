@@ -1,0 +1,26 @@
+{
+  "skill_name": "clean-agents",
+  "evals": [
+    {
+      "id": 0,
+      "name": "eval-legal-multisystem",
+      "prompt": "Necesito un sistema que procese documentos legales de proveedores, extraiga cláusulas de riesgo, las compare contra una base histórica de 5000 contratos, y genere reportes con score de riesgo. Procesamos ~50 contratos/semana, datos sensibles, el equipo legal revisa antes de enviar al cliente. Somos 2 devs con experiencia en Python, tenemos 1 mes.",
+      "expected_output": "Architecture recommendation with Mermaid diagrams in HTML, agent specs, project plan, and security considerations. Should recommend multi-agent supervisor pattern with GraphRAG for knowledge base. Should be in Spanish since the prompt is in Spanish.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "eval-simple-chatbot",
+      "prompt": "I need a customer support chatbot that answers questions about our SaaS product using our docs, escalates complex issues to humans, and logs all interactions. We're a small team of 1 dev, need it in 2 weeks, budget is tight.",
+      "expected_output": "Should recommend a simple single-agent or lightweight pipeline approach (not over-engineered multi-agent). Should recommend a fast framework like OpenAI Agents SDK or CrewAI. Should include RAG for docs, HITL for escalation, basic guardrails. Output should be an HTML with diagrams and a lean project plan.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "eval-security-testing",
+      "prompt": "Tengo un sistema multi-agente ya deployado con 3 agentes (orchestrator que asigna tareas, analyzer que procesa datos de clientes incluyendo PII, y reporter que genera informes). Quiero correr security testing para encontrar vulnerabilidades antes del launch a producción. Los agentes usan Claude via API y tienen acceso a una base de datos PostgreSQL.",
+      "expected_output": "Should run CLean-shield static analysis mode. Should identify specific vulnerabilities based on the described system (PII handling, DB access, inter-agent communication). Should produce a security dashboard HTML with severity ratings, attack scenarios, and code fixes. Should be in Spanish.",
+      "files": []
+    }
+  ]
+}

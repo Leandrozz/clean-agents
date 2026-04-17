@@ -1,0 +1,17 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Eval outputs (generated, not tracked)
+evals/results/
+evals/reports/
+
+# Temporary
+*.tmp
+*.bak
