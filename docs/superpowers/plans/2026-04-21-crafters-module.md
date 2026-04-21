@@ -2364,7 +2364,7 @@ license: {{ spec.license }}
 ---
 
 {% for section in spec.body_outline -%}
-# {{ section.heading }}{% if section.anchor %} {#{{ section.anchor }}}{% endif %}
+# {{ section.heading }}{% if section.anchor %} {{ "{#" }}{{ section.anchor }}}{% endif %}
 
 {{ section.body }}
 
