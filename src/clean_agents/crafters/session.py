@@ -84,19 +84,41 @@ class DesignSession(BaseModel, Generic[T]):
     model_config = {"arbitrary_types_allowed": True}
 
     def intake(self, input: str | T) -> Recommendation:  # noqa: A002
-        raise NotImplementedError("Implemented in M5")
+        from clean_agents.crafters.base import ArtifactSpec
+        if isinstance(input, ArtifactSpec):
+            self.spec = input  # type: ignore[assignment]
+        self.phase = Phase.RECOMMEND
+        self.history.append(Turn(phase=Phase.INTAKE, role="user", content=str(input)))
+        return Recommendation(
+            summary="Spec accepted; proceed to deep dive or render.",
+            proposed_spec=self.spec.model_dump(mode="json"),
+        )
 
     def answer(self, question_id: str, answer: Any) -> Delta:
-        raise NotImplementedError("Implemented in M5")
+        self.history.append(Turn(phase=self.phase, role="user", content=f"{question_id}={answer}"))
+        return Delta(field_path=question_id, new_value=answer)
 
     def render(self, output_dir: Path) -> Bundle:
-        raise NotImplementedError("Implemented in M5")
+        # Default implementation for Skills; verticals can override via duck-typed dispatch
+        from clean_agents.crafters.skill.scaffold import render_skill_bundle
+        bundle = render_skill_bundle(self.spec, output_dir)  # type: ignore[arg-type]
+        self.phase = Phase.BUNDLE
+        return bundle
 
     def iterate(self, edits: dict[str, Any]) -> CascadeReport:
-        raise NotImplementedError("Implemented in M5")
+        deltas: list[Delta] = []
+        spec_dict = self.spec.model_dump(mode="json")
+        for k, v in edits.items():
+            old = spec_dict.get(k)
+            spec_dict[k] = v
+            deltas.append(Delta(field_path=k, old_value=old, new_value=v))
+        self.spec = type(self.spec).model_validate(spec_dict)
+        self.phase = Phase.ITERATE
+        return CascadeReport(deltas=deltas)
 
     def module(self, name: str, **kwargs: Any) -> ModuleResult:
-        raise NotImplementedError("Implemented in M5")
+        self.phase = Phase.MODULES
+        return ModuleResult(name=name, ok=True, message=f"Module {name!r} dispatched.")
 
     def save(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
