@@ -45,7 +45,8 @@ security = ["garak>=0.9"]
 eval = ["ragas>=0.2"]
 observe = ["opentelemetry-api>=1.25", "opentelemetry-sdk>=1.25"]
 load = ["locust>=2.24"]
-all = ["clean-agents[ai,api,openai,security,eval,observe,load]"]
+crafters = ["sentence-transformers>=2.7"]
+all = ["clean-agents[ai,api,openai,security,eval,observe,load,crafters]"]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "ruff>=0.5", "mypy>=1.10"]
 
 [project.urls]
@@ -63,6 +64,24 @@ clean-agents = "clean_agents.cli.main:app"
 token-budget-auditor = "clean_agents.modules.examples:TokenBudgetAuditor"
 redundancy-detector = "clean_agents.modules.examples:RedundancyDetector"
 cost-optimizer = "clean_agents.modules.examples:CostOptimizer"
+
+[project.entry-points."clean_agents.validators"]
+# Built-in skill validators auto-registered (listed for discoverability)
+skill-l1-name-dir = "clean_agents.crafters.skill.validators:SkillL1NameDir"
+skill-l1-desc-length = "clean_agents.crafters.skill.validators:SkillL1DescLength"
+skill-l1-refs-exist = "clean_agents.crafters.skill.validators:SkillL1RefsExist"
+skill-l1-refs-orphan = "clean_agents.crafters.skill.validators:SkillL1RefsOrphan"
+skill-l2-hardcoded-stats = "clean_agents.crafters.skill.validators:SkillL2HardcodedStats"
+skill-l2-hardcoded-dates = "clean_agents.crafters.skill.validators:SkillL2HardcodedDates"
+skill-l2-language-mix = "clean_agents.crafters.skill.validators:SkillL2LanguageMix"
+skill-l2-trigger-coverage = "clean_agents.crafters.skill.validators:SkillL2TriggerCoverage"
+skill-l2-progressive-disclosure = "clean_agents.crafters.skill.validators:SkillL2ProgressiveDisclosure"
+skill-l2-promises-vs-delivery = "clean_agents.crafters.skill.validators:SkillL2PromisesVsDelivery"
+skill-l2-contradictions = "clean_agents.crafters.skill.validators:SkillL2Contradictions"
+skill-l3-name-collision = "clean_agents.crafters.skill.validators:SkillL3NameCollision"
+skill-l3-trigger-overlap = "clean_agents.crafters.skill.validators:SkillL3TriggerOverlap"
+skill-l3-marketplace-dedupe = "clean_agents.crafters.skill.validators:SkillL3MarketplaceDedupe"
+skill-l4-activation-precision = "clean_agents.crafters.skill.validators:SkillL4ActivationPrecision"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/clean_agents"]

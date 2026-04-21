@@ -8,7 +8,6 @@ from clean_agents.crafters.session import (
     Phase,
     Recommendation,
 )
-from clean_agents.crafters.skill.validators import register_builtin as _reg_skill
 from clean_agents.crafters.validators.base import (
     Level,
     Severity,
@@ -36,6 +35,3 @@ __all__ = [
     "ValidatorRegistry",
     "get_registry",
 ]
-
-# Register built-in skill validators on the global registry at import time.
-_reg_skill(get_registry())
