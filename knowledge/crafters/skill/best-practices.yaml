@@ -1,0 +1,19 @@
+- id: progressive-disclosure
+  title: Use progressive disclosure
+  body: |
+    Keep SKILL.md tight (< 2000 words). Move detail to references/*.md so
+    Claude can pull it in only when needed.
+  applies_to: [skill]
+  source: anthropic-docs
+- id: distinctive-triggers
+  title: Distinctive triggers
+  body: |
+    Pick 5-10 trigger phrases that unambiguously identify when the skill
+    should activate. Avoid generic words ("ai", "agent").
+  applies_to: [skill]
+  source: anthropic-docs
+- id: source-of-truth-yaml
+  title: Treat .skill-spec.yaml as source of truth
+  body: |
+    Edit the YAML and re-render. Never hand-edit SKILL.md — it drifts.
+  applies_to: [skill]

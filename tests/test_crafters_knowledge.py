@@ -29,3 +29,15 @@ def test_anti_pattern_model():
 def test_knowledge_base_is_abc():
     import inspect
     assert inspect.isabstract(KnowledgeBase)
+
+
+from pathlib import Path
+
+
+def test_yaml_knowledge_loads_seeded_files():
+    from clean_agents.crafters.skill.knowledge import SkillKnowledge
+    kb = SkillKnowledge(root=Path("knowledge/crafters/skill"))
+    bps = kb.get_best_practices("skill")
+    aps = kb.get_anti_patterns("skill")
+    assert any(bp.id == "progressive-disclosure" for bp in bps)
+    assert any(ap.rule_id == "SKILL-L2-HARDCODED-STATS" for ap in aps)

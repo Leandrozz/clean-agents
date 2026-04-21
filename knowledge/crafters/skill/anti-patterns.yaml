@@ -1,0 +1,25 @@
+- id: hardcoded-stats
+  title: Hard-coded stats
+  body: Percentages and CVE IDs age within weeks.
+  rule_id: SKILL-L2-HARDCODED-STATS
+  applies_to: [skill]
+- id: hardcoded-name-collision
+  title: Name collision with installed skill
+  body: Reusing an installed skill's name causes activation ambiguity.
+  rule_id: SKILL-L3-NAME-COLLISION
+  applies_to: [skill]
+- id: description-too-long
+  title: Description > 500 chars
+  body: Over-long descriptions waste trigger space and confuse activation.
+  rule_id: SKILL-L1-DESC-LENGTH
+  applies_to: [skill]
+- id: language-mix
+  title: Mixed-language content
+  body: A Spanish sentence in an English skill fights the declared language.
+  rule_id: SKILL-L2-LANGUAGE-MIX
+  applies_to: [skill]
+- id: missing-version-field
+  title: Missing version in frontmatter
+  body: Installers need a version; missing field breaks upgrade paths.
+  rule_id: null   # surfaced at SkillSpec construction time
+  applies_to: [skill]
