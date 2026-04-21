@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json as _json
+import sys as _sys
 from pathlib import Path as _Path
 
 import typer
@@ -14,7 +15,6 @@ from clean_agents.crafters.base import ArtifactType
 from clean_agents.crafters.skill.spec import SkillSpec
 from clean_agents.crafters.validators.base import (
     Level,
-    Severity,
     ValidationContext,
     ValidationReport,
     get_registry,
@@ -102,10 +102,10 @@ def validate_cmd(
     report = _run_validators(spec, ctx, levels)
 
     if fmt == "json":
-        # Use sys.stdout directly to avoid Rich wrapping the JSON output
-        import sys
-        sys.stdout.write(_json.dumps(report.model_dump(mode="json"), indent=2))
-        sys.stdout.write("\n")
+        # Write straight to stdout so CliRunner captures the JSON verbatim
+        # (Rich's Console would otherwise wrap/highlight multi-line JSON).
+        _sys.stdout.write(_json.dumps(report.model_dump(mode="json"), indent=2))
+        _sys.stdout.write("\n")
     elif fmt == "md":
         for f in report.findings:
             console.print(
