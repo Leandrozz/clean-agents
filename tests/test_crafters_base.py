@@ -198,3 +198,44 @@ def test_registry_register_and_get():
 
 def test_registry_entry_point_group():
     assert ValidatorRegistry.ENTRY_POINT_GROUP == "clean_agents.validators"
+
+
+from clean_agents.crafters.skill.spec import (
+    EvalCase,
+    EvalsManifest,
+    EvalThresholds,
+    ReferenceFile,
+    SkillSection,
+    SkillSpec,
+)
+
+
+def test_skill_spec_minimal():
+    spec = SkillSpec(
+        name="example-skill",
+        description="A minimal skill used in unit tests — >50 chars so desc-length passes.",
+        triggers=["example", "fixture", "unit test"],
+        references=[],
+        body_outline=[SkillSection(heading="Overview", body="…")],
+    )
+    assert spec.artifact_type is ArtifactType.SKILL
+    assert spec.bundle_format == "dir"
+
+
+def test_reference_file_fields():
+    ref = ReferenceFile(
+        path=Path("references/taxonomy.md"),
+        topic="Taxonomy of skill triggers",
+        outline=["Intro", "Matrix", "Examples"],
+        mentioned_in=["overview"],
+    )
+    assert ref.outline == ["Intro", "Matrix", "Examples"]
+
+
+def test_evals_manifest_defaults():
+    manifest = EvalsManifest(
+        positive_cases=[EvalCase(prompt="Design a skill for X", expected="activate")],
+        negative_cases=[EvalCase(prompt="What time is it?", expected="ignore")],
+    )
+    assert manifest.thresholds.tpr_min == 0.8
+    assert manifest.thresholds.fpr_max == 0.2
