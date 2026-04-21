@@ -95,3 +95,66 @@ def test_leandro_real_skill_regression(tmp_path: Path):
     assert "SKILL-L1-DESC-LENGTH" in rule_ids
     assert "SKILL-L2-HARDCODED-STATS" in rule_ids
     assert "SKILL-L2-LANGUAGE-MIX" in rule_ids
+
+
+def test_trigger_overlap_empty_triggers(tmp_path: Path):
+    installed = tmp_path / "installed"
+    installed.mkdir()
+    spec = _spec("my-skill")
+    spec.triggers = []
+    ctx = ValidationContext(installed_roots=[installed])
+    assert SkillL3TriggerOverlap().check(spec, ctx) == []
+
+
+def test_trigger_overlap_nonexistent_root(tmp_path: Path):
+    missing = tmp_path / "does-not-exist"
+    ctx = ValidationContext(installed_roots=[missing])
+    assert SkillL3TriggerOverlap().check(_spec("my-skill"), ctx) == []
+
+
+def test_trigger_overlap_skips_non_directory(tmp_path: Path):
+    installed = tmp_path / "installed"
+    installed.mkdir()
+    (installed / "not-a-skill.txt").write_text("stray file")
+    spec = _spec("my-skill")
+    spec.triggers = ["legal", "risk"]
+    ctx = ValidationContext(installed_roots=[installed])
+    assert SkillL3TriggerOverlap().check(spec, ctx) == []
+
+
+def test_trigger_overlap_skips_self(tmp_path: Path):
+    installed = tmp_path / "installed"
+    self_dir = installed / "my-skill"
+    self_dir.mkdir(parents=True)
+    (self_dir / "SKILL.md").write_text(
+        "---\nname: my-skill\n---\n"
+        "# Triggers\n- legal\n- risk\n- contract\n- liability\n"
+    )
+    spec = _spec("my-skill")
+    spec.triggers = ["legal", "risk", "contract", "liability"]
+    ctx = ValidationContext(installed_roots=[installed])
+    # Self-match must NOT fire — the validator skips skill_dir.name == spec.name
+    assert SkillL3TriggerOverlap().check(spec, ctx) == []
+
+
+def test_trigger_overlap_skips_dir_without_skill_md(tmp_path: Path):
+    installed = tmp_path / "installed"
+    (installed / "empty-dir").mkdir(parents=True)
+    spec = _spec("my-skill")
+    spec.triggers = ["legal", "risk"]
+    ctx = ValidationContext(installed_roots=[installed])
+    assert SkillL3TriggerOverlap().check(spec, ctx) == []
+
+
+def test_trigger_overlap_below_threshold(tmp_path: Path):
+    installed = tmp_path / "installed"
+    skill_dir = installed / "legal-risk"
+    skill_dir.mkdir(parents=True)
+    # Only ONE of four triggers appears in the installed skill — ratio = 0.25 < 0.6
+    (skill_dir / "SKILL.md").write_text(
+        "---\nname: legal-risk\n---\n# Triggers\n- legal\n- unrelated-topic\n"
+    )
+    spec = _spec("my-skill")
+    spec.triggers = ["legal", "risk", "contract", "liability"]
+    ctx = ValidationContext(installed_roots=[installed])
+    assert SkillL3TriggerOverlap().check(spec, ctx) == []
