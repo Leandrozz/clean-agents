@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.2.0] - 2026-04-XX
+## [0.2.0] - 2026-04-21
 
 ### Added
 - `src/clean_agents/crafters/` module — design Skills / MCPs / Tools / Plugins (Skills v1).
