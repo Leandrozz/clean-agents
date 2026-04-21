@@ -31,8 +31,13 @@ def render_skill_bundle(spec: SkillSpec, output_dir: Path) -> Bundle:
     # References scaffolds
     refs_dir = output_dir / "references"
     refs_dir.mkdir(exist_ok=True)
+    out_resolved = output_dir.resolve()
     for ref in spec.references:
         target = output_dir / ref.path
+        if not target.resolve().is_relative_to(out_resolved):
+            raise ValueError(
+                f"reference path {ref.path!r} escapes the output directory"
+            )
         target.parent.mkdir(parents=True, exist_ok=True)
         if not target.exists():
             target.write_text(r.render("reference.md.j2", {"ref": ref}), encoding="utf-8")

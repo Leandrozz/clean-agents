@@ -59,3 +59,45 @@ def test_roundtrip_spec_yaml(tmp_path: Path):
     assert loaded["name"] == "roundtrip"
     restored = SkillSpec.model_validate(loaded)
     assert restored.description == spec.description
+
+
+def test_rerender_preserves_existing_reference_file(tmp_path: Path):
+    """Re-rendering a bundle must NOT overwrite a human-edited reference file."""
+    spec = SkillSpec(
+        name="preserve-test",
+        description="Verify reference files are not re-written on re-render.",
+        triggers=["preserve"],
+        references=[
+            ReferenceFile(
+                path=Path("references/notes.md"),
+                topic="Notes",
+                outline=["Intro"],
+            )
+        ],
+        body_outline=[],
+    )
+    bundle = render_skill_bundle(spec, output_dir=tmp_path / "out")
+    ref_file = bundle.output_dir / "references" / "notes.md"
+    # Human edits the reference file after the first render.
+    edited = "# Notes\n\nUser hand-written content.\n"
+    ref_file.write_text(edited, encoding="utf-8")
+    # Re-render the bundle — the user's edits must be preserved.
+    render_skill_bundle(spec, output_dir=bundle.output_dir)
+    assert ref_file.read_text(encoding="utf-8") == edited
+
+
+def test_reference_path_escaping_is_rejected(tmp_path: Path):
+    """A ReferenceFile whose path escapes the output directory must be rejected."""
+    import pytest
+
+    spec = SkillSpec(
+        name="path-escape",
+        description="Verify path traversal is rejected for reference files.",
+        triggers=["escape"],
+        references=[
+            ReferenceFile(path=Path("../evil.md"), topic="Evil", outline=[])
+        ],
+        body_outline=[],
+    )
+    with pytest.raises(ValueError, match="escapes the output directory"):
+        render_skill_bundle(spec, output_dir=tmp_path / "safe")
