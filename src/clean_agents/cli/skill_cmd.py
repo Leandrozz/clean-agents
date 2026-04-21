@@ -211,6 +211,24 @@ def render_cmd(
 
 def publish_cmd(
     spec: str = typer.Argument(..., help="Path to .skill-spec.yaml"),
+    marketplace: str = typer.Option("", "--marketplace", help="Marketplace URL"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Validate + simulate publish"),
 ) -> None:
-    """Publish a Skill to the marketplace (stub — wired in M6)."""
-    console.print(f"[yellow]skill publish {spec}: coming in M6[/]")
+    p = _Path(spec)
+    if not p.exists():
+        console.print(f"[red]spec not found:[/] {p}")
+        raise typer.Exit(code=2)
+
+    skill_spec = SkillSpec.model_validate(_yaml.safe_load(p.read_text(encoding="utf-8")))
+    ctx = ValidationContext(installed_roots=default_installed_roots())
+    report = _run_validators(skill_spec, ctx, {Level.L1, Level.L2, Level.L3})
+
+    if report.has_blocking():
+        console.print("[red]Publish blocked — fix HIGH/CRITICAL findings first.[/]")
+        raise typer.Exit(code=1)
+
+    if dry_run:
+        console.print(f"[green]Dry-run OK for {skill_spec.name}[/] — would publish to {marketplace or 'default marketplace'}.")
+        return
+
+    console.print("[yellow]Marketplace publish integration coming in M10.[/]")

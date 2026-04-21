@@ -93,3 +93,13 @@ def test_design_from_description_minimal(tmp_path: Path):
     ])
     assert result.exit_code == 0, result.stdout
     assert (tmp_path / "desc" / ".skill-spec.yaml").exists()
+
+
+def test_publish_dry_run():
+    spec_path = Path("tests/fixtures/crafters/skill/good-skill/.skill-spec.yaml")
+    result = runner.invoke(app, [
+        "skill", "publish", str(spec_path),
+        "--dry-run",
+    ])
+    assert result.exit_code == 0, result.stdout
+    assert "dry" in result.stdout.lower()
