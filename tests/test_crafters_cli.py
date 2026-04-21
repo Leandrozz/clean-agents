@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from typer.testing import CliRunner
 
 from clean_agents.cli.main import app
@@ -12,3 +14,27 @@ def test_skill_group_registered():
     assert "validate" in result.stdout
     assert "render" in result.stdout
     assert "publish" in result.stdout
+
+
+def test_validate_good_skill_succeeds():
+    fixture = Path("tests/fixtures/crafters/skill/good-skill")
+    result = runner.invoke(app, ["skill", "validate", str(fixture)])
+    assert result.exit_code == 0, result.stdout
+    # good-skill passes because it has no CRITICAL or blocking findings (only medium L2 warning)
+    assert "good-skill" in result.stdout
+
+
+def test_validate_bad_desc_too_long_fails():
+    fixture = Path("tests/fixtures/crafters/skill/bad-desc-too-long")
+    result = runner.invoke(app, ["skill", "validate", str(fixture)])
+    assert result.exit_code != 0
+    assert "SKILL-L1-DESC-LENGTH" in result.stdout
+
+
+def test_validate_json_format():
+    fixture = Path("tests/fixtures/crafters/skill/good-skill")
+    result = runner.invoke(app, ["skill", "validate", str(fixture), "--format", "json"])
+    assert result.exit_code == 0
+    import json
+    parsed = json.loads(result.stdout.strip())  # Parse entire output as JSON
+    assert "findings" in parsed

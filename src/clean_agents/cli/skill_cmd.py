@@ -2,10 +2,71 @@
 
 from __future__ import annotations
 
+import json as _json
+from pathlib import Path as _Path
+
 import typer
+import yaml as _yaml
 from rich.console import Console
+from rich.table import Table
+
+from clean_agents.crafters.base import ArtifactType
+from clean_agents.crafters.skill.spec import SkillSpec
+from clean_agents.crafters.validators.base import (
+    Level,
+    Severity,
+    ValidationContext,
+    ValidationReport,
+    get_registry,
+)
+from clean_agents.crafters.validators.collision import default_installed_roots
 
 console = Console()
+
+
+def _load_spec(path: _Path) -> tuple[SkillSpec, _Path | None]:
+    """Accept either a bundle directory (with .skill-spec.yaml) or a YAML file."""
+    if path.is_dir():
+        yaml_path = path / ".skill-spec.yaml"
+        bundle_root: _Path | None = path
+    else:
+        yaml_path = path
+        bundle_root = path.parent if path.parent.exists() else None
+    data = _yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
+    return SkillSpec.model_validate(data), bundle_root
+
+
+def _run_validators(
+    spec: SkillSpec,
+    ctx: ValidationContext,
+    levels: set[Level],
+) -> ValidationReport:
+    report = ValidationReport()
+    for v in get_registry().for_artifact(ArtifactType.SKILL):
+        if v.level not in levels:
+            continue
+        try:
+            report.findings.extend(v.check(spec, ctx))
+        except Exception as e:
+            report.findings.append(
+                # Surface validator bugs instead of swallowing (no silent failures)
+                _finding_for_exception(v.rule_id, e),
+            )
+    return report
+
+
+def _finding_for_exception(rule_id: str, err: Exception):
+    from clean_agents.crafters.validators.base import (
+        Severity as _S,
+        ValidationFinding as _VF,
+    )
+
+    return _VF(
+        rule_id=rule_id,
+        severity=_S.INFO,
+        message=f"validator {rule_id} raised {type(err).__name__}: {err}",
+        fix_hint="File an issue at github.com/Leandrozz/clean-agents with the full traceback.",
+    )
 
 
 def design_cmd(
@@ -17,9 +78,54 @@ def design_cmd(
 
 def validate_cmd(
     path: str = typer.Argument(..., help="Path to skill bundle or .skill-spec.yaml"),
+    level: str = typer.Option("L1,L2,L3", "--level", help="Comma-separated levels"),
+    eval_: bool = typer.Option(
+        False, "--eval", help="Include L4 runtime eval (requires ANTHROPIC_API_KEY)"
+    ),
+    fmt: str = typer.Option("table", "--format", help="table | json | md"),
 ) -> None:
     """Validate a Skill against L1/L2/L3 rules (stub — wired in M6)."""
-    console.print(f"[yellow]skill validate {path}: coming in M6[/]")
+    p = _Path(path)
+    if not p.exists():
+        console.print(f"[red]path not found:[/] {p}")
+        raise typer.Exit(code=2)
+    spec, bundle_root = _load_spec(p)
+
+    levels = {Level(tok.strip()) for tok in level.split(",")}
+    if eval_:
+        levels.add(Level.L4)
+
+    ctx = ValidationContext(
+        bundle_root=bundle_root,
+        installed_roots=default_installed_roots(),
+    )
+    report = _run_validators(spec, ctx, levels)
+
+    if fmt == "json":
+        # Use sys.stdout directly to avoid Rich wrapping the JSON output
+        import sys
+        sys.stdout.write(_json.dumps(report.model_dump(mode="json"), indent=2))
+        sys.stdout.write("\n")
+    elif fmt == "md":
+        for f in report.findings:
+            console.print(
+                f"- **{f.severity.value.upper()}** `{f.rule_id}` — {f.message}"
+            )
+    else:
+        if not report.findings:
+            console.print("[green]No findings — skill passes validation.[/]")
+        else:
+            table = Table(title=f"Validation findings for {spec.name}")
+            table.add_column("Severity")
+            table.add_column("Rule")
+            table.add_column("Message")
+            table.add_column("Location")
+            for f in report.findings:
+                table.add_row(f.severity.value, f.rule_id, f.message, f.location or "—")
+            console.print(table)
+
+    if report.has_critical() or report.has_blocking():
+        raise typer.Exit(code=1)
 
 
 def render_cmd(
