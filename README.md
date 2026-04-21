@@ -169,6 +169,26 @@ pip install "clean-agents[dev]"
 - **Redundancy Detector** — identifies potentially redundant agent pairs
 - **Cost Optimizer** — auto-downgrades models where premium isn't needed (saves ~14%)
 
+## Crafters (Skills / MCPs / Tools / Plugins)
+
+Design and ship production-quality Claude Code skills with the same
+opinionated-consultant flow.
+
+```bash
+# Non-interactive from a one-liner
+clean-agents skill design "detect markdown tables in prompts" -o ./my-skill
+
+# Validate (L1+L2+L3) — add --ai --eval for Claude-backed checks
+clean-agents skill validate ./my-skill
+
+# Bidirectional: design a skill for a specific agent in a blueprint
+clean-agents skill design --for-agent risk_evaluator \
+  --blueprint .clean-agents/blueprint.yaml -o ./risk-patterns
+```
+
+MCPs, Tools, and Plugins follow the same `<noun> <verb>` shape. See
+[`docs/crafters/README.md`](docs/crafters/README.md) for the full flow.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

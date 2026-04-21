@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.0] - 2026-04-XX
+
+### Added
+- `src/clean_agents/crafters/` module — design Skills / MCPs / Tools / Plugins (Skills v1).
+- CLI: `clean-agents skill {design,validate,render,publish,install,list}`.
+- 15 validator rules for Skills (L1/L2/L3/L4) with Pydantic findings.
+- Bidirectional Blueprint integration: `AgentSpec.recommended_artifacts`,
+  `--for-agent`, and `design --module suggest-artifacts`.
+- Optional `crafters` extra (`sentence-transformers>=2.7`). TF-IDF fallback
+  preserves offline-first invariant.
+- New entry-point group `clean_agents.validators` for third-party rules.
+
+### Changed
+- `AgentSpec` now has `recommended_artifacts: list[ArtifactRef]` (default `[]`).
+  Blueprints from v0.1 continue to load unchanged.
+
 ## [0.1.0] — 2026-04-17
 
 ### Added
