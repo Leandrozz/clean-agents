@@ -228,7 +228,10 @@ def publish_cmd(
         raise typer.Exit(code=1)
 
     if dry_run:
-        console.print(f"[green]Dry-run OK for {skill_spec.name}[/] — would publish to {marketplace or 'default marketplace'}.")
+        target = marketplace or "default marketplace"
+        console.print(
+            f"[green]Dry-run OK for {skill_spec.name}[/] — would publish to {target}."
+        )
         return
 
     console.print("[yellow]Marketplace publish integration coming in M10.[/]")
