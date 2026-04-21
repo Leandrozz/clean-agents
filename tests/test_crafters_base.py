@@ -110,6 +110,8 @@ from clean_agents.crafters.validators.base import (
     ValidationContext,
     ValidationFinding,
     ValidationReport,
+    ValidatorBase,
+    ValidatorRegistry,
 )
 
 
@@ -171,3 +173,28 @@ def test_extend_merges_findings_in_place():
     assert len(a.findings) == 3
     # b must not be mutated by extend
     assert len(b.findings) == 2
+
+
+# Helper classes for registry tests
+class _DummySpec(ArtifactSpec):
+    artifact_type: ArtifactType = ArtifactType.SKILL
+
+
+class _DummyValidator(ValidatorBase[_DummySpec]):
+    level = Level.L1
+    artifact_type = ArtifactType.SKILL
+    rule_id = "DUMMY-L1-OK"
+
+    def check(self, spec, ctx):
+        return []
+
+
+def test_registry_register_and_get():
+    reg = ValidatorRegistry()
+    reg.register(_DummyValidator())
+    validators = reg.for_artifact(ArtifactType.SKILL, level=Level.L1)
+    assert any(v.rule_id == "DUMMY-L1-OK" for v in validators)
+
+
+def test_registry_entry_point_group():
+    assert ValidatorRegistry.ENTRY_POINT_GROUP == "clean_agents.validators"

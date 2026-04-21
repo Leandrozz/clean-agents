@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.metadata
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
@@ -94,3 +95,64 @@ class ValidatorBase(ABC, Generic[T]):
     @abstractmethod
     def check(self, spec: T, ctx: ValidationContext) -> list[ValidationFinding]:
         """Run validation logic. Return a list of findings (empty = pass)."""
+
+
+class ValidatorRegistry:
+    """Central registry for validators.
+
+    Discovery sources (in order):
+      1. Built-in validators registered programmatically
+      2. Python entry points (group: "clean_agents.validators")
+      3. User-provided validator objects via register()
+    """
+
+    ENTRY_POINT_GROUP = "clean_agents.validators"
+
+    def __init__(self) -> None:
+        self._validators: list[ValidatorBase] = []
+        self._loaded: bool = False
+
+    def register(self, validator: ValidatorBase) -> None:
+        self._validators.append(validator)
+
+    def for_artifact(
+        self,
+        artifact_type: ArtifactType,
+        level: Level | None = None,
+    ) -> list[ValidatorBase]:
+        if not self._loaded:
+            self.discover()
+        result = [v for v in self._validators if v.artifact_type is artifact_type]
+        if level is not None:
+            result = [v for v in result if v.level is level]
+        return result
+
+    def discover(self) -> None:
+        self._loaded = True
+        try:
+            eps = importlib.metadata.entry_points()
+            if hasattr(eps, "select"):
+                group_eps = eps.select(group=self.ENTRY_POINT_GROUP)
+            elif isinstance(eps, dict):
+                group_eps = eps.get(self.ENTRY_POINT_GROUP, [])
+            else:
+                group_eps = [ep for ep in eps if ep.group == self.ENTRY_POINT_GROUP]
+            for ep in group_eps:
+                try:
+                    cls = ep.load()
+                    if isinstance(cls, type) and issubclass(cls, ValidatorBase):
+                        self._validators.append(cls())
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+
+_registry: ValidatorRegistry | None = None
+
+
+def get_registry() -> ValidatorRegistry:
+    global _registry
+    if _registry is None:
+        _registry = ValidatorRegistry()
+    return _registry
