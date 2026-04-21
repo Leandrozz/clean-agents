@@ -56,4 +56,8 @@ class ArtifactSpec(BaseModel):
     def _validate_kebab(cls, v: str) -> str:
         if not v or not all(c.islower() or c.isdigit() or c == "-" for c in v):
             raise ValueError(f"name must be kebab-case (lowercase, digits, hyphens): {v!r}")
+        if v.startswith("-") or v.endswith("-") or "--" in v:
+            raise ValueError(
+                f"name must not start/end with hyphen or contain consecutive hyphens: {v!r}"
+            )
         return v
