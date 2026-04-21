@@ -260,3 +260,14 @@ Format your response as:
             messages=messages,
         )
         return response.content[0].text
+
+
+_architect: "ClaudeArchitect | None" = None
+
+
+def get_architect() -> "ClaudeArchitect":
+    global _architect
+    if _architect is None:
+        from anthropic import Anthropic
+        _architect = ClaudeArchitect(client=Anthropic())
+    return _architect

@@ -43,9 +43,23 @@ def _run_validators(
     levels: set[Level],
 ) -> ValidationReport:
     report = ValidationReport()
+    ai_client = None
+    if ctx.enable_ai:
+        try:
+            from clean_agents.integrations.anthropic import get_architect
+            ai_client = get_architect()
+        except Exception as e:
+            console.print(
+                f"[yellow]AI mode requested but unavailable: {e}; "
+                f"falling back to heuristics.[/]"
+            )
+
     for v in get_registry().for_artifact(ArtifactType.SKILL):
         if v.level not in levels:
             continue
+        # Inject AI client into contradiction validator
+        if v.rule_id == "SKILL-L2-CONTRADICTIONS":
+            v.client = ai_client
         try:
             report.findings.extend(v.check(spec, ctx))
         except Exception as e:
@@ -129,6 +143,7 @@ def validate_cmd(
     eval_: bool = typer.Option(
         False, "--eval", help="Include L4 runtime eval (requires ANTHROPIC_API_KEY)"
     ),
+    ai: bool = typer.Option(False, "--ai", help="Use Claude-backed L2 contradiction detection"),
     fmt: str = typer.Option("table", "--format", help="table | json | md"),
 ) -> None:
     """Validate a Skill against L1/L2/L3 rules (stub — wired in M6)."""
@@ -145,6 +160,7 @@ def validate_cmd(
     ctx = ValidationContext(
         bundle_root=bundle_root,
         installed_roots=default_installed_roots(),
+        enable_ai=ai,
     )
     report = _run_validators(spec, ctx, levels)
 
