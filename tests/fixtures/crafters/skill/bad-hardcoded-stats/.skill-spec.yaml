@@ -1,0 +1,10 @@
+name: bad-hardcoded-stats
+version: 0.1.0
+description: A fixture skill that intentionally embeds 82.4% attack success and CVE-2025-6514 to trip L2.
+artifact_type: skill
+language: en
+triggers: ["fixture", "hardcoded stats"]
+references: []
+body_outline:
+  - heading: Findings
+    body: "According to our paper de 2024, attack success is 82.4% against CVE-2025-6514."
