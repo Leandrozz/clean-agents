@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CLean-agents | build-legal</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+:root {
+  --bg: #0d1117; --bg2: #161b22; --bg3: #1c2333;
+  --border: #30363d; --border-light: #3d444d;
+  --text: #e6edf3; --text-dim: #8b949e; --text-muted: #656d76;
+  --accent: #58a6ff; --accent-hover: #79c0ff;
+  --green: #3fb950; --green-bg: rgba(63,185,80,0.15);
+  --yellow: #d29922; --yellow-bg: rgba(210,153,34,0.15);
+  --red: #f85149; --red-bg: rgba(248,81,73,0.15);
+  --blue-bg: rgba(88,166,255,0.15);
+  --purple: #bc8cff; --purple-bg: rgba(188,140,255,0.15);
+  --radius: 8px; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  background: var(--bg); color: var(--text); line-height: 1.6;
+}
+.container { max-width: 1280px; margin: 0 auto; padding: 2rem; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); }
+
+/* Header */
+.header { margin-bottom: 2rem; }
+.header h1 { font-size: 2rem; color: var(--text); font-weight: 700; }
+.header h1 span { color: var(--accent); }
+.header p { color: var(--text-dim); margin-top: 0.25rem; max-width: 800px; }
+.meta { display: flex; gap: 1.5rem; margin-top: 0.75rem; color: var(--text-muted); font-size: 0.85rem; }
+
+/* KPI Grid */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+.kpi {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 1.25rem; text-align: center; box-shadow: var(--shadow);
+  transition: border-color 0.2s;
+}
+.kpi:hover { border-color: var(--accent); }
+.kpi-value { font-size: 1.75rem; font-weight: 700; color: var(--accent); line-height: 1.2; }
+.kpi-label { color: var(--text-dim); font-size: 0.8rem; margin-top: 0.25rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* Tabs */
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; overflow-x: auto; }
+.tab {
+  padding: 0.75rem 1.25rem; cursor: pointer; color: var(--text-dim); font-size: 0.9rem;
+  font-weight: 500; border-bottom: 2px solid transparent; white-space: nowrap;
+  transition: color 0.2s, border-color 0.2s;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-content { display: none; }
+.tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* Cards */
+.card {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 1.5rem; margin-bottom: 1rem; box-shadow: var(--shadow);
+}
+.card h3 { color: var(--accent); margin-bottom: 0.75rem; font-size: 1.1rem; }
+
+/* Agent cards */
+.agent-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1rem; }
+.agent-card {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; box-shadow: var(--shadow); transition: border-color 0.2s;
+}
+.agent-card:hover { border-color: var(--accent); }
+.agent-header {
+  padding: 1rem 1.25rem; display: flex; justify-content: space-between;
+  align-items: center; cursor: pointer; user-select: none;
+}
+.agent-header h4 { margin: 0; font-size: 1rem; }
+.agent-header .toggle { color: var(--text-dim); transition: transform 0.3s; }
+.agent-header .toggle.open { transform: rotate(180deg); }
+.agent-body { padding: 0 1.25rem 1.25rem; display: none; }
+.agent-body.open { display: block; }
+.agent-row { display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+.agent-row:last-child { border-bottom: none; }
+.agent-row .label { color: var(--text-dim); }
+
+/* Badges */
+.badge {
+  display: inline-block; padding: 0.15rem 0.6rem; border-radius: 12px;
+  font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em;
+}
+.badge-green { background: var(--green-bg); color: var(--green); }
+.badge-yellow { background: var(--yellow-bg); color: var(--yellow); }
+.badge-red { background: var(--red-bg); color: var(--red); }
+.badge-blue { background: var(--blue-bg); color: var(--accent); }
+.badge-purple { background: var(--purple-bg); color: var(--purple); }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+th, td { padding: 0.65rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+th { color: var(--accent); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+tr:hover td { background: var(--bg3); }
+
+/* Charts */
+.chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+.chart-box { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+.chart-box h4 { color: var(--text-dim); margin-bottom: 1rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
+canvas { max-height: 280px; }
+
+/* Mermaid */
+.mermaid-container {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 2rem; text-align: center; overflow-x: auto;
+}
+
+/* Security score */
+.score-ring { position: relative; width: 160px; height: 160px; margin: 0 auto 1rem; }
+.score-ring svg { transform: rotate(-90deg); }
+.score-value {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  font-size: 2.5rem; font-weight: 700;
+}
+
+/* Decision timeline */
+.decision { position: relative; padding-left: 2rem; margin-bottom: 1.5rem; }
+.decision::before {
+  content: ''; position: absolute; left: 0.5rem; top: 0; bottom: -1.5rem;
+  width: 2px; background: var(--border);
+}
+.decision:last-child::before { display: none; }
+.decision::after {
+  content: ''; position: absolute; left: 0.15rem; top: 0.5rem;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--accent); border: 2px solid var(--bg2);
+}
+.decision h4 { color: var(--accent); font-size: 0.95rem; }
+.decision p { color: var(--text-dim); font-size: 0.9rem; margin-top: 0.25rem; }
+.decision .research { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.35rem; font-style: italic; }
+
+/* Footer */
+.footer { text-align: center; color: var(--text-muted); padding: 2rem 0; font-size: 0.8rem; border-top: 1px solid var(--border); margin-top: 2rem; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .chart-row { grid-template-columns: 1fr; }
+  .agent-grid { grid-template-columns: 1fr; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Print */
+@media print {
+  body { background: #fff; color: #000; }
+  .tabs { display: none; }
+  .tab-content { display: block !important; }
+  .agent-body { display: block !important; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- Header -->
+<div class="header">
+  <h1><span>&#9881;&#65039;</span> build-legal</h1>
+  <p>Build a GDPR-compliant legal contract review system with clause extraction, risk scoring, compliance reports, and human approval for high-risk decisions</p>
+  <div class="meta">
+    <span>v1.0</span>
+    <span>Iteration 1</span>
+    <span>2026-04-17T10:51:34.341849</span>
+    <span>legal domain</span>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="kpi-grid">
+  <div class="kpi">
+    <div class="kpi-value">4</div>
+    <div class="kpi-label">Agents</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-value" style="font-size:1.3rem;">pipeline</div>
+    <div class="kpi-label">Pattern</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-value" style="font-size:1.3rem;">crewai</div>
+    <div class="kpi-label">Framework</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-value">$0.1940</div>
+    <div class="kpi-label">Cost / Request</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-value" style="color:var(--green);">95%</div>
+    <div class="kpi-label">Security Score</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-value">&#10003;</div>
+    <div class="kpi-label">Human-in-Loop</div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('arch')">Architecture</div>
+  <div class="tab" onclick="switchTab('agents')">Agents</div>
+  <div class="tab" onclick="switchTab('security')">Security</div>
+  <div class="tab" onclick="switchTab('cost')">Cost Analysis</div>
+  <div class="tab" onclick="switchTab('decisions')">Decisions</div>
+  <div class="tab" onclick="switchTab('compliance')">Compliance</div>
+</div>
+
+<!-- Tab: Architecture -->
+<div id="tab-arch" class="tab-content active">
+  <div class="mermaid-container">
+    <div class="mermaid">
+graph TD
+    INPUT(["User Input"])
+    orchestrator{"⚙ orchestrator"}
+    INPUT --> orchestrator
+    doc_analyzer["doc_analyzer"]
+    orchestrator --> doc_analyzer
+    risk_evaluator["risk_evaluator"]
+    orchestrator --> risk_evaluator
+    guardian[/"🛡 guardian"/]
+    INPUT -.->|filter| guardian
+    guardian -.-> orchestrator
+    OUTPUT(["Response"])
+    orchestrator --> OUTPUT
+    style INPUT fill:#1f6feb,stroke:#58a6ff,color:#fff
+    style OUTPUT fill:#1f6feb,stroke:#58a6ff,color:#fff
+    style orchestrator fill:#d29922,stroke:#e3b341,color:#000
+    style guardian fill:#f85149,stroke:#f85149,color:#fff
+    </div>
+  </div>
+  <div class="card" style="margin-top:1rem;">
+    <h3>Architecture Summary</h3>
+    <table>
+      <tr><td style="width:200px; color:var(--text-dim);">System Type</td><td>pipeline</td></tr>
+      <tr><td style="color:var(--text-dim);">Pattern</td><td>pipeline</td></tr>
+      <tr><td style="color:var(--text-dim);">Framework</td><td>crewai</td></tr>
+      <tr><td style="color:var(--text-dim);">Scale</td><td>medium</td></tr>
+      <tr><td style="color:var(--text-dim);">Autonomy Level</td><td>L3</td></tr>
+      <tr><td style="color:var(--text-dim);">Infrastructure</td><td>Vector DB: pinecone | Graph DB: neo4j | Queue: redis | Observability: langfuse</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- Tab: Agents -->
+<div id="tab-agents" class="tab-content">
+  <div class="agent-grid">
+    <div class="agent-card">
+      <div class="agent-header" onclick="toggleAgent(this)">
+        <h4>orchestrator <span class="badge badge-yellow">orchestrator</span></h4>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="agent-body">
+        <div class="agent-row"><span class="label">Role</span><span>Plan decomposition, task routing, result synthesis</span></div>
+        <div class="agent-row"><span class="label">Model</span><span>claude-opus-4-6</span></div>
+        <div class="agent-row"><span class="label">Reasoning</span><span>react</span></div>
+        <div class="agent-row"><span class="label">HITL</span><span>pre-action</span></div>
+        <div class="agent-row"><span class="label">Token Budget</span><span>2,000</span></div>
+        <div class="agent-row"><span class="label">Memory</span><span>Short-term</span></div>
+        <div class="agent-row"><span class="label">Input Guards</span><span>injection_detection, encoding_detection</span></div>
+        <div class="agent-row"><span class="label">Output Guards</span><span>schema_validation</span></div>
+        <div class="agent-row"><span class="label">Metrics</span><span>routing_accuracy: 0.95, recovery_rate: 0.8</span></div>
+      </div>
+    </div>
+    <div class="agent-card">
+      <div class="agent-header" onclick="toggleAgent(this)">
+        <h4>doc_analyzer <span class="badge badge-blue">specialist</span></h4>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="agent-body">
+        <div class="agent-row"><span class="label">Role</span><span>Extract clauses, obligations, and terms from legal documents</span></div>
+        <div class="agent-row"><span class="label">Model</span><span>claude-sonnet-4-6</span></div>
+        <div class="agent-row"><span class="label">Reasoning</span><span>react</span></div>
+        <div class="agent-row"><span class="label">HITL</span><span>none</span></div>
+        <div class="agent-row"><span class="label">Token Budget</span><span>4,000</span></div>
+        <div class="agent-row"><span class="label">Memory</span><span>Short-term, GraphRAG</span></div>
+        <div class="agent-row"><span class="label">Input Guards</span><span>None</span></div>
+        <div class="agent-row"><span class="label">Output Guards</span><span>schema_validation, confidence_threshold</span></div>
+        <div class="agent-row"><span class="label">Metrics</span><span>extraction_accuracy: 0.92</span></div>
+      </div>
+    </div>
+    <div class="agent-card">
+      <div class="agent-header" onclick="toggleAgent(this)">
+        <h4>risk_evaluator <span class="badge badge-blue">specialist</span></h4>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="agent-body">
+        <div class="agent-row"><span class="label">Role</span><span>Score and categorize contractual risks by severity</span></div>
+        <div class="agent-row"><span class="label">Model</span><span>claude-sonnet-4-6</span></div>
+        <div class="agent-row"><span class="label">Reasoning</span><span>reflection</span></div>
+        <div class="agent-row"><span class="label">HITL</span><span>post-action</span></div>
+        <div class="agent-row"><span class="label">Token Budget</span><span>3,000</span></div>
+        <div class="agent-row"><span class="label">Memory</span><span>Short-term, GraphRAG</span></div>
+        <div class="agent-row"><span class="label">Input Guards</span><span>None</span></div>
+        <div class="agent-row"><span class="label">Output Guards</span><span>schema_validation</span></div>
+        <div class="agent-row"><span class="label">Metrics</span><span>risk_classification_accuracy: 0.9</span></div>
+      </div>
+    </div>
+    <div class="agent-card">
+      <div class="agent-header" onclick="toggleAgent(this)">
+        <h4>guardian <span class="badge badge-red">guardian</span></h4>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="agent-body">
+        <div class="agent-row"><span class="label">Role</span><span>Input/output safety filtering, PII detection, compliance checks</span></div>
+        <div class="agent-row"><span class="label">Model</span><span>claude-haiku-4-5</span></div>
+        <div class="agent-row"><span class="label">Reasoning</span><span>react</span></div>
+        <div class="agent-row"><span class="label">HITL</span><span>none</span></div>
+        <div class="agent-row"><span class="label">Token Budget</span><span>500</span></div>
+        <div class="agent-row"><span class="label">Memory</span><span>Short-term</span></div>
+        <div class="agent-row"><span class="label">Input Guards</span><span>injection_detection, encoding_detection, pii_detection</span></div>
+        <div class="agent-row"><span class="label">Output Guards</span><span>pii_masking, content_filter</span></div>
+        <div class="agent-row"><span class="label">Metrics</span><span>detection_rate: 0.99, false_positive_rate: 0.05</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Tab: Security -->
+<div id="tab-security" class="tab-content">
+  <div class="chart-row">
+    <div class="chart-box">
+      <h4>Security Score</h4>
+      <div class="score-ring">
+        <svg width="160" height="160" viewBox="0 0 160 160">
+          <circle cx="80" cy="80" r="70" fill="none" stroke="var(--border)" stroke-width="12"/>
+          <circle cx="80" cy="80" r="70" fill="none"
+            stroke="var(--green)"
+            stroke-width="12" stroke-linecap="round"
+            stroke-dasharray="418.0 440"/>
+        </svg>
+        <div class="score-value" style="color:var(--green);">95</div>
+      </div>
+      <p style="text-align:center; color:var(--text-dim); font-size:0.85rem;">
+        80/84 checks passed
+      </p>
+    </div>
+    <div class="chart-box">
+      <h4>Findings by Category</h4>
+      <canvas id="securityChart"></canvas>
+    </div>
+  </div>
+  <div class="card"><h3>Security Findings</h3><table><thead><tr><th>Status</th><th>Category</th><th>Agent</th><th>Check</th><th>Detail</th></tr></thead><tbody><tr><td><span style="color:var(--red);">&#10007;</span></td><td>ATK-1</td><td>doc_analyzer</td><td>system_prompt_isolation</td><td style="color:var(--text-dim);">Agent 'doc_analyzer' missing input injection detection</td></tr><tr><td><span style="color:var(--red);">&#10007;</span></td><td>ATK-1</td><td>doc_analyzer</td><td>input_sanitization</td><td style="color:var(--text-dim);">Agent 'doc_analyzer' missing input injection detection</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-1</td><td>doc_analyzer</td><td>instruction_hierarchy</td><td style="color:var(--text-dim);">Consider HITL for sensitive operations</td></tr><tr><td><span style="color:var(--red);">&#10007;</span></td><td>ATK-1</td><td>risk_evaluator</td><td>system_prompt_isolation</td><td style="color:var(--text-dim);">Agent 'risk_evaluator' missing input injection detection</td></tr><tr><td><span style="color:var(--red);">&#10007;</span></td><td>ATK-1</td><td>risk_evaluator</td><td>input_sanitization</td><td style="color:var(--text-dim);">Agent 'risk_evaluator' missing input injection detection</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-1</td><td>guardian</td><td>instruction_hierarchy</td><td style="color:var(--text-dim);">Consider HITL for sensitive operations</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-2</td><td>doc_analyzer</td><td>role_boundary_enforcement</td><td style="color:var(--text-dim);">Consider HITL for sensitive operations</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-2</td><td>doc_analyzer</td><td>multi_turn_tracking</td><td style="color:var(--text-dim);">Consider HITL for sensitive operations</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-2</td><td>guardian</td><td>role_boundary_enforcement</td><td style="color:var(--text-dim);">Consider HITL for sensitive operations</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-2</td><td>guardian</td><td>multi_turn_tracking</td><td style="color:var(--text-dim);">Consider HITL for sensitive operations</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-3</td><td>orchestrator</td><td>system_prompt_protection</td><td style="color:var(--text-dim);">Ensure system prompts are not exposed in tool outputs</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-3</td><td>doc_analyzer</td><td>system_prompt_protection</td><td style="color:var(--text-dim);">Ensure system prompts are not exposed in tool outputs</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-3</td><td>doc_analyzer</td><td>rag_access_control</td><td style="color:var(--text-dim);">RAG enabled — ensure access control on retrieval</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-3</td><td>risk_evaluator</td><td>system_prompt_protection</td><td style="color:var(--text-dim);">Ensure system prompts are not exposed in tool outputs</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-3</td><td>risk_evaluator</td><td>rag_access_control</td><td style="color:var(--text-dim);">RAG enabled — ensure access control on retrieval</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-3</td><td>guardian</td><td>system_prompt_protection</td><td style="color:var(--text-dim);">Ensure system prompts are not exposed in tool outputs</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-4</td><td>doc_analyzer</td><td>inter_agent_auth</td><td style="color:var(--text-dim);">Verify agent-to-agent auth at framework level</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-4</td><td>doc_analyzer</td><td>message_validation</td><td style="color:var(--text-dim);">Add input validation for inter-agent messages</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-4</td><td>doc_analyzer</td><td>privilege_boundaries</td><td style="color:var(--text-dim);">Add input validation for inter-agent messages</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-4</td><td>risk_evaluator</td><td>inter_agent_auth</td><td style="color:var(--text-dim);">Verify agent-to-agent auth at framework level</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-4</td><td>risk_evaluator</td><td>message_validation</td><td style="color:var(--text-dim);">Add input validation for inter-agent messages</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-4</td><td>risk_evaluator</td><td>privilege_boundaries</td><td style="color:var(--text-dim);">Add input validation for inter-agent messages</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-4</td><td>guardian</td><td>inter_agent_auth</td><td style="color:var(--text-dim);">Verify agent-to-agent auth at framework level</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-6</td><td>orchestrator</td><td>recursion_depth_limits</td><td style="color:var(--text-dim);">Recursion limits should be configured at framework level</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-6</td><td>doc_analyzer</td><td>recursion_depth_limits</td><td style="color:var(--text-dim);">Recursion limits should be configured at framework level</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-6</td><td>risk_evaluator</td><td>recursion_depth_limits</td><td style="color:var(--text-dim);">Recursion limits should be configured at framework level</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-6</td><td>guardian</td><td>recursion_depth_limits</td><td style="color:var(--text-dim);">Recursion limits should be configured at framework level</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-7</td><td>orchestrator</td><td>pii_detection</td><td style="color:var(--text-dim);">Agent 'orchestrator' has no PII detection on input</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-7</td><td>orchestrator</td><td>context_isolation</td><td style="color:var(--text-dim);">Verify context isolation between users at runtime</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-7</td><td>doc_analyzer</td><td>pii_detection</td><td style="color:var(--text-dim);">Agent 'doc_analyzer' has no PII detection on input</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-7</td><td>doc_analyzer</td><td>context_isolation</td><td style="color:var(--text-dim);">Verify context isolation between users at runtime</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-7</td><td>risk_evaluator</td><td>pii_detection</td><td style="color:var(--text-dim);">Agent 'risk_evaluator' has no PII detection on input</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-7</td><td>risk_evaluator</td><td>context_isolation</td><td style="color:var(--text-dim);">Verify context isolation between users at runtime</td></tr><tr><td><span style="color:var(--yellow);">&#9888;</span></td><td>ATK-7</td><td>guardian</td><td>context_isolation</td><td style="color:var(--text-dim);">Verify context isolation between users at runtime</td></tr></tbody></table></div>
+</div>
+
+<!-- Tab: Cost -->
+<div id="tab-cost" class="tab-content">
+  <div class="chart-row">
+    <div class="chart-box">
+      <h4>Cost per Agent (per request)</h4>
+      <canvas id="costChart"></canvas>
+    </div>
+    <div class="chart-box">
+      <h4>Monthly Projection (10K requests)</h4>
+      <table>
+        <tr><td style="color:var(--text-dim);">LLM Cost</td><td style="text-align:right; font-weight:700;">$1940.00</td></tr>
+        <tr><td style="color:var(--text-dim);">Infrastructure</td><td style="text-align:right;">$200</td></tr>
+        <tr style="border-top:2px solid var(--accent);"><td style="color:var(--accent); font-weight:700;">Total</td><td style="text-align:right; font-weight:700; color:var(--accent);">$2140.00/mo</td></tr>
+      </table>
+      <div style="margin-top:1.5rem;">
+        <h4 style="color:var(--text-dim); font-size:0.85rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">Optimization Tips</h4>
+        <div style="color:var(--green); font-size:0.85rem;">&#10003; No obvious optimizations needed</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tab: Decisions -->
+<div id="tab-decisions" class="tab-content">
+  <div class="card">
+    <div class="decision">
+      <h4>D1-Purpose: System type: pipeline</h4>
+      <p>Based on 2 detected responsibilities and deterministic nature.</p>
+      <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.25rem;">Alternatives: single-agent, multi-agent, complex-system</div>
+    </div>
+    <div class="decision">
+      <h4>D2-Architecture: Pattern: pipeline</h4>
+      <p>2-3 sequential responsibilities with clear data handoffs. Pipeline is simplest.</p>
+      
+    </div>
+
+  </div>
+</div>
+
+<!-- Tab: Compliance -->
+<div id="tab-compliance" class="tab-content">
+  <div class="card"><h3>GDPR</h3><table><thead><tr><th>Requirement</th><th>Component</th><th>Status</th></tr></thead><tbody><tr><td>Art. 13-14 Transparency</td><td style="color:var(--text-dim);">guardrails.output → explainability</td><td><span class="badge badge-yellow">Review</span></td></tr><tr><td>Art. 15 Right of access</td><td style="color:var(--text-dim);">audit_trail → logging</td><td><span class="badge badge-green">Configured</span></td></tr><tr><td>Art. 17 Right to erasure</td><td style="color:var(--text-dim);">memory → deletion endpoint</td><td><span class="badge badge-yellow">Review</span></td></tr><tr><td>Art. 25 Data protection by design</td><td style="color:var(--text-dim);">guardrails.input → pii_detection</td><td><span class="badge badge-green">Configured</span></td></tr><tr><td>Art. 35 DPIA</td><td style="color:var(--text-dim);">blueprint.decisions</td><td><span class="badge badge-yellow">Review</span></td></tr></tbody></table></div>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  Generated by <strong>CLean-agents</strong> v1.0 &middot;
+  4 agents &middot;
+  legal domain &middot;
+  2 design decisions
+</div>
+
+</div>
+
+<script>
+mermaid.initialize({
+  startOnLoad: true, theme: 'dark',
+  themeVariables: {
+    primaryColor: '#161b22', primaryTextColor: '#e6edf3',
+    primaryBorderColor: '#58a6ff', lineColor: '#30363d',
+    secondaryColor: '#1f2937', tertiaryColor: '#0d1117',
+  }
+});
+
+function switchTab(id) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function toggleAgent(el) {
+  const body = el.nextElementSibling;
+  const icon = el.querySelector('.toggle');
+  body.classList.toggle('open');
+  icon.classList.toggle('open');
+}
+
+// Cost chart
+const costCtx = document.getElementById('costChart');
+if (costCtx) {
+  new Chart(costCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ["orchestrator", "doc_analyzer", "risk_evaluator", "guardian"],
+      datasets: [{ data: [0.0675, 0.069, 0.054, 0.0035], backgroundColor: ['#58a6ff','#3fb950','#d29922','#f85149','#bc8cff','#f778ba','#79c0ff'], borderColor: '#161b22', borderWidth: 2 }]
+    },
+    options: {
+      responsive: true, plugins: {
+        legend: { position: 'bottom', labels: { color: '#8b949e', padding: 12 } }
+      }
+    }
+  });
+}
+
+// Security chart
+const secCtx = document.getElementById('securityChart');
+if (secCtx) {
+  new Chart(secCtx, {
+    type: 'bar',
+    data: {
+      labels: ["ATK-1", "ATK-2", "ATK-3", "ATK-4", "ATK-5", "ATK-6", "ATK-7"],
+      datasets: [
+        { label: 'Pass', data: [6, 8, 6, 5, 12, 8, 5], backgroundColor: 'rgba(63,185,80,0.7)' },
+        { label: 'Warn', data: [2, 4, 6, 7, 0, 4, 7], backgroundColor: 'rgba(210,153,34,0.7)' },
+        { label: 'Fail', data: [4, 0, 0, 0, 0, 0, 0], backgroundColor: 'rgba(248,81,73,0.7)' }
+      ]
+    },
+    options: {
+      responsive: true, scales: {
+        x: { stacked: true, ticks: { color: '#8b949e' }, grid: { display: false } },
+        y: { stacked: true, ticks: { color: '#8b949e' }, grid: { color: '#30363d' } }
+      },
+      plugins: { legend: { labels: { color: '#8b949e' } } }
+    }
+  });
+}
+</script>
+</body>
+</html>

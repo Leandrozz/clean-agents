@@ -1,0 +1,83 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "clean-agents"
+version = "0.1.0"
+description = "Design, plan, and harden production-grade agentic AI systems"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [{ name = "Leandro", email = "leansroasas@gmail.com" }]
+keywords = [
+    "agents", "ai", "architecture", "security", "llm", "multi-agent",
+    "claude", "openai", "langgraph", "crewai", "guardrails", "blueprint",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
+]
+
+dependencies = [
+    "typer[all]>=0.12.0",
+    "rich>=13.0",
+    "pydantic>=2.0",
+    "pyyaml>=6.0",
+    "jinja2>=3.1",
+    "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+ai = ["anthropic>=0.40.0"]
+api = ["fastapi>=0.115", "uvicorn>=0.30"]
+openai = ["openai>=1.50"]
+security = ["garak>=0.9"]
+eval = ["ragas>=0.2"]
+observe = ["opentelemetry-api>=1.25", "opentelemetry-sdk>=1.25"]
+load = ["locust>=2.24"]
+all = ["clean-agents[ai,api,openai,security,eval,observe,load]"]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "ruff>=0.5", "mypy>=1.10"]
+
+[project.urls]
+Homepage = "https://github.com/Leandrozz/clean-agents"
+Documentation = "https://github.com/Leandrozz/clean-agents#readme"
+Repository = "https://github.com/Leandrozz/clean-agents"
+Issues = "https://github.com/Leandrozz/clean-agents/issues"
+Changelog = "https://github.com/Leandrozz/clean-agents/blob/main/CHANGELOG.md"
+
+[project.scripts]
+clean-agents = "clean_agents.cli.main:app"
+
+[project.entry-points."clean_agents.plugins"]
+# Built-in plugins registered via entry points
+token-budget-auditor = "clean_agents.modules.examples:TokenBudgetAuditor"
+redundancy-detector = "clean_agents.modules.examples:RedundancyDetector"
+cost-optimizer = "clean_agents.modules.examples:CostOptimizer"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/clean_agents"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

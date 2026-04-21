@@ -38,6 +38,9 @@ evals/reports/
 pytest-cache-files-*/
 .worktrees/
 
+# Claude Code per-user settings (should not be shared)
+.claude/settings.local.json
+
 # Temporary
 *.tmp
 *.bak
