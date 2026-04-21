@@ -153,3 +153,14 @@ def test_validate_with_eval_flag(monkeypatch, tmp_path: Path):
 def test_skill_list_installed_runs():
     result = runner.invoke(app, ["skill", "list", "--installed"])
     assert result.exit_code == 0
+
+
+def test_e2e_leandro_real_skill_validates_with_known_findings():
+    fixture = Path("tests/fixtures/crafters/skill/leandro-real-skill")
+    result = runner.invoke(app, ["skill", "validate", str(fixture), "--format", "json"])
+    import json
+    payload = json.loads(result.stdout.strip())
+    rule_ids = {f["rule_id"] for f in payload["findings"]}
+    assert "SKILL-L1-DESC-LENGTH" in rule_ids
+    assert "SKILL-L2-HARDCODED-STATS" in rule_ids
+    assert "SKILL-L2-LANGUAGE-MIX" in rule_ids
