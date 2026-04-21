@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from typing import TYPE_CHECKING
 
 from clean_agents.crafters.base import ArtifactType
 from clean_agents.crafters.skill.spec import SkillSpec
@@ -15,6 +16,9 @@ from clean_agents.crafters.validators.base import (
     ValidatorRegistry,
 )
 from clean_agents.crafters.validators.semantic import extract_keywords, sniff_language
+
+if TYPE_CHECKING:
+    from clean_agents.crafters.skill.ai import AIClient
 
 
 class SkillL1NameDir(ValidatorBase[SkillSpec]):
@@ -269,11 +273,46 @@ class SkillL2PromisesVsDelivery(ValidatorBase[SkillSpec]):
         return out
 
 
+class SkillL2Contradictions(ValidatorBase[SkillSpec]):
+    level = Level.L2
+    artifact_type = ArtifactType.SKILL
+    rule_id = "SKILL-L2-CONTRADICTIONS"
+
+    def __init__(self, client: AIClient | None = None) -> None:
+        self.client = client
+
+    def check(self, spec: SkillSpec, ctx: ValidationContext) -> list[ValidationFinding]:
+        if not ctx.enable_ai or self.client is None:
+            return []
+        text = "\n".join(s.body for s in spec.body_outline)
+        try:
+            contradictions = self.client.detect_contradictions(text)
+        except Exception as e:  # noqa: BLE001
+            return [ValidationFinding(
+                rule_id=self.rule_id,
+                severity=Severity.INFO,
+                message=f"AI contradiction check failed: {e}",
+                location="spec.body_outline",
+                fix_hint="Retry with a reachable ANTHROPIC_API_KEY.",
+            )]
+        return [
+            ValidationFinding(
+                rule_id=self.rule_id,
+                severity=Severity.HIGH,
+                message=c,
+                location="spec.body_outline",
+                fix_hint="Reconcile the contradictory statements.",
+            )
+            for c in contradictions
+        ]
+
+
 def register_builtin(registry: ValidatorRegistry) -> None:
     """Called from crafters package init to register L1 validators."""
     for cls in (
         SkillL1NameDir, SkillL1DescLength, SkillL1RefsExist, SkillL1RefsOrphan,
         SkillL2HardcodedStats, SkillL2HardcodedDates, SkillL2LanguageMix,
         SkillL2TriggerCoverage, SkillL2ProgressiveDisclosure, SkillL2PromisesVsDelivery,
+        SkillL2Contradictions,
     ):
         registry.register(cls())

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import MagicMock
 
 from clean_agents.crafters.skill.spec import ReferenceFile, SkillSection, SkillSpec
 from clean_agents.crafters.skill.validators import (
+    SkillL2Contradictions,
     SkillL2HardcodedDates,
     SkillL2HardcodedStats,
     SkillL2LanguageMix,
@@ -93,3 +95,21 @@ def test_promises_vs_delivery_fires_for_empty_ref(tmp_path: Path):
     )
     findings = SkillL2PromisesVsDelivery().check(spec, ValidationContext(bundle_root=bundle))
     assert findings
+
+
+def test_contradictions_requires_ai_context():
+    spec = _spec_with_body("This skill is always safe.\nThis skill is never safe.")
+    findings = SkillL2Contradictions().check(spec, ValidationContext(enable_ai=False))
+    assert findings == []
+
+
+def test_contradictions_detects_with_mock_ai():
+    spec = _spec_with_body("Always run guardrails.\nNever run guardrails.")
+    validator = SkillL2Contradictions(client=MagicMock(
+        detect_contradictions=MagicMock(return_value=[
+            "Body claims both 'always run guardrails' and 'never run guardrails'.",
+        ])
+    ))
+    findings = validator.check(spec, ValidationContext(enable_ai=True))
+    assert findings
+    assert findings[0].rule_id == "SKILL-L2-CONTRADICTIONS"
