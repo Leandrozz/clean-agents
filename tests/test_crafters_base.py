@@ -102,3 +102,35 @@ def test_artifact_spec_rejects_bad_language(bad_lang):
             artifact_type=ArtifactType.SKILL,
             language=bad_lang,
         )
+
+
+from clean_agents.crafters.validators.base import (
+    Level,
+    Severity,
+    ValidationContext,
+    ValidationFinding,
+    ValidationReport,
+)
+
+
+def test_validation_report_aggregation():
+    findings = [
+        ValidationFinding(rule_id="R1", severity=Severity.CRITICAL, message="x"),
+        ValidationFinding(rule_id="R2", severity=Severity.HIGH, message="y"),
+        ValidationFinding(rule_id="R3", severity=Severity.LOW, message="z"),
+    ]
+    report = ValidationReport(findings=findings)
+    assert report.has_critical() is True
+    assert report.has_blocking() is True  # critical OR high
+    assert len(report.by_severity(Severity.LOW)) == 1
+
+
+def test_severity_ordering():
+    assert Severity.CRITICAL.rank() > Severity.HIGH.rank() > Severity.MEDIUM.rank()
+    assert Severity.MEDIUM.rank() > Severity.LOW.rank() > Severity.INFO.rank()
+
+
+def test_validation_context_defaults():
+    ctx = ValidationContext(bundle_root=None, installed_roots=[])
+    assert ctx.bundle_root is None
+    assert ctx.installed_roots == []
