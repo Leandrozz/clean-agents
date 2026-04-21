@@ -1,7 +1,13 @@
 from pathlib import Path
 
+import yaml
+from typer.testing import CliRunner
+
+from clean_agents.cli.main import app
 from clean_agents.core.agent import AgentSpec
 from clean_agents.crafters.base import ArtifactRef, ArtifactType
+
+runner = CliRunner()
 
 
 def test_agent_spec_has_recommended_artifacts_default_empty():
@@ -36,14 +42,6 @@ def test_existing_blueprint_yaml_still_loads():
     }
     bp = Blueprint.model_validate(data)
     assert bp.agents[0].recommended_artifacts == []
-
-
-import yaml
-from typer.testing import CliRunner
-
-from clean_agents.cli.main import app
-
-runner = CliRunner()
 
 
 def test_skill_design_for_agent_loads_blueprint(tmp_path: Path):
