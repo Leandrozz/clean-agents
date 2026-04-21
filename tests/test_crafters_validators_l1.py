@@ -32,3 +32,9 @@ def test_name_dir_mismatch_fires(tmp_path: Path):
     assert len(findings) == 1
     assert findings[0].rule_id == "SKILL-L1-NAME-DIR"
     assert findings[0].severity is Severity.HIGH
+
+
+def test_name_dir_skips_when_no_bundle_root():
+    ctx = ValidationContext()
+    result = SkillL1NameDir().check(_spec("my-skill"), ctx)
+    assert result == []
