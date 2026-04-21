@@ -331,6 +331,61 @@ class SkillL3NameCollision(ValidatorBase[SkillSpec]):
         return []
 
 
+class SkillL3TriggerOverlap(ValidatorBase[SkillSpec]):
+    level = Level.L3
+    artifact_type = ArtifactType.SKILL
+    rule_id = "SKILL-L3-TRIGGER-OVERLAP"
+    THRESHOLD = 0.6
+
+    def check(self, spec: SkillSpec, ctx: ValidationContext) -> list[ValidationFinding]:
+        out: list[ValidationFinding] = []
+        own = {t.lower() for t in spec.triggers}
+        if not own:
+            return out
+        for root in ctx.installed_roots:
+            if not root.exists():
+                continue
+            for skill_dir in root.iterdir():
+                if not skill_dir.is_dir() or skill_dir.name == spec.name:
+                    continue
+                skill_md = skill_dir / "SKILL.md"
+                if not skill_md.exists():
+                    continue
+                text = skill_md.read_text(encoding="utf-8", errors="ignore").lower()
+                other = {t for t in own if t in text}
+                ratio = len(other) / len(own)
+                if ratio >= self.THRESHOLD:
+                    out.append(ValidationFinding(
+                        rule_id=self.rule_id,
+                        severity=Severity.HIGH,
+                        message=(
+                            f"trigger overlap {ratio:.0%} with installed skill {skill_dir.name!r}"
+                        ),
+                        location="spec.triggers",
+                        fix_hint="Narrow triggers to distinctive keywords or merge the skills.",
+                    ))
+        return out
+
+
+class SkillL3MarketplaceDedupe(ValidatorBase[SkillSpec]):
+    level = Level.L3
+    artifact_type = ArtifactType.SKILL
+    rule_id = "SKILL-L3-MARKETPLACE-DEDUPE"
+
+    def check(self, spec: SkillSpec, ctx: ValidationContext) -> list[ValidationFinding]:
+        if not ctx.marketplace_index:
+            return []
+        if spec.name in ctx.marketplace_index:
+            return [ValidationFinding(
+                rule_id=self.rule_id,
+                severity=Severity.MEDIUM,
+                message=f"name {spec.name!r} already published in marketplace",
+                location="spec.name",
+                fix_hint="Consider contributing to the existing artifact instead.",
+            )]
+        return []
+
+
 def register_builtin(registry: ValidatorRegistry) -> None:
     """Called from crafters package init to register L1 validators."""
     for cls in (
@@ -338,6 +393,6 @@ def register_builtin(registry: ValidatorRegistry) -> None:
         SkillL2HardcodedStats, SkillL2HardcodedDates, SkillL2LanguageMix,
         SkillL2TriggerCoverage, SkillL2ProgressiveDisclosure, SkillL2PromisesVsDelivery,
         SkillL2Contradictions,
-        SkillL3NameCollision,
+        SkillL3NameCollision, SkillL3TriggerOverlap, SkillL3MarketplaceDedupe,
     ):
         registry.register(cls())
