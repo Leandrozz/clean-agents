@@ -1,4 +1,4 @@
-"""Validator base classes and types for the crafter pipeline."""
+"""Validator base classes and registry for the crafter pipeline."""
 
 from __future__ import annotations
 
