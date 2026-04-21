@@ -170,6 +170,24 @@ telemetry_app.command("export", help="Export telemetry data to a file")(telemetr
 telemetry_app.command("clear", help="Delete all telemetry data")(telemetry_clear_cmd)
 app.add_typer(telemetry_app)
 
+from clean_agents.cli.skill_cmd import (  # noqa: E402
+    design_cmd as skill_design_cmd,
+    validate_cmd as skill_validate_cmd,
+    render_cmd as skill_render_cmd,
+    publish_cmd as skill_publish_cmd,
+)
+
+skill_app = typer.Typer(
+    name="skill",
+    help="Design, validate, render, and publish Claude Code Skills",
+    no_args_is_help=True,
+)
+skill_app.command("design", help="Start an interactive Skill design session")(skill_design_cmd)
+skill_app.command("validate", help="Validate a Skill bundle or spec")(skill_validate_cmd)
+skill_app.command("render", help="Render a Skill bundle from .skill-spec.yaml")(skill_render_cmd)
+skill_app.command("publish", help="Publish a Skill to the marketplace")(skill_publish_cmd)
+app.add_typer(skill_app)
+
 
 @app.command("serve")
 def serve_cmd(
