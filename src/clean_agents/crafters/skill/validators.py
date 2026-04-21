@@ -16,6 +16,7 @@ from clean_agents.crafters.validators.base import (
     ValidatorRegistry,
 )
 from clean_agents.crafters.validators.collision import installed_skill_names
+from clean_agents.crafters.validators.runtime import ActivationFn, compute_tpr_fpr
 from clean_agents.crafters.validators.semantic import extract_keywords, sniff_language
 
 if TYPE_CHECKING:
@@ -386,6 +387,44 @@ class SkillL3MarketplaceDedupe(ValidatorBase[SkillSpec]):
         return []
 
 
+class SkillL4ActivationPrecision(ValidatorBase[SkillSpec]):
+    level = Level.L4
+    artifact_type = ArtifactType.SKILL
+    rule_id = "SKILL-L4-ACTIVATION-PRECISION"
+
+    def __init__(self, activate_fn: ActivationFn | None = None) -> None:
+        self.activate_fn = activate_fn
+
+    def check(self, spec: SkillSpec, ctx: ValidationContext) -> list[ValidationFinding]:
+        if not ctx.enable_ai or spec.evals is None or self.activate_fn is None:
+            return []
+        triples: list[tuple[str, str, bool]] = []
+        for c in spec.evals.positive_cases:
+            triples.append((c.prompt, "activate", bool(self.activate_fn(c.prompt))))
+        for c in spec.evals.negative_cases:
+            triples.append((c.prompt, "ignore", bool(self.activate_fn(c.prompt))))
+
+        tpr, fpr = compute_tpr_fpr(triples)
+        out: list[ValidationFinding] = []
+        if tpr < spec.evals.thresholds.tpr_min:
+            out.append(ValidationFinding(
+                rule_id=self.rule_id,
+                severity=Severity.HIGH,
+                message=f"TPR {tpr:.2f} below threshold {spec.evals.thresholds.tpr_min}",
+                location="spec.evals",
+                fix_hint="Broaden triggers or positive cases; inspect failing positives.",
+            ))
+        if fpr > spec.evals.thresholds.fpr_max:
+            out.append(ValidationFinding(
+                rule_id=self.rule_id,
+                severity=Severity.HIGH,
+                message=f"FPR {fpr:.2f} above threshold {spec.evals.thresholds.fpr_max}",
+                location="spec.evals",
+                fix_hint="Narrow triggers; inspect activating decoys.",
+            ))
+        return out
+
+
 def register_builtin(registry: ValidatorRegistry) -> None:
     """Called from crafters package init to register L1 validators."""
     for cls in (
@@ -394,5 +433,6 @@ def register_builtin(registry: ValidatorRegistry) -> None:
         SkillL2TriggerCoverage, SkillL2ProgressiveDisclosure, SkillL2PromisesVsDelivery,
         SkillL2Contradictions,
         SkillL3NameCollision, SkillL3TriggerOverlap, SkillL3MarketplaceDedupe,
+        SkillL4ActivationPrecision,
     ):
         registry.register(cls())
