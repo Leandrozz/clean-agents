@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from clean_agents.crafters.knowledge import (
     AntiPattern,
     BestPractice,
@@ -29,9 +31,6 @@ def test_anti_pattern_model():
 def test_knowledge_base_is_abc():
     import inspect
     assert inspect.isabstract(KnowledgeBase)
-
-
-from pathlib import Path
 
 
 def test_yaml_knowledge_loads_seeded_files():
