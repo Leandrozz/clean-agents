@@ -7,6 +7,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from clean_agents.crafters.base import ArtifactRef
+
 
 class ReasoningPattern(str, Enum):
     REACT = "react"
@@ -113,6 +115,9 @@ class AgentSpec(BaseModel):
     estimated_cost_per_call: float | None = Field(
         default=None, description="Estimated cost in USD per invocation"
     )
+
+    # --- Crafters integration (added in v0.2; defaults preserve v0.1 compatibility) ---
+    recommended_artifacts: list[ArtifactRef] = Field(default_factory=list)
 
     def is_orchestrator(self) -> bool:
         return self.agent_type == "orchestrator"
