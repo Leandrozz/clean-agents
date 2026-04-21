@@ -15,6 +15,7 @@ from clean_agents.crafters.validators.base import (
     ValidatorBase,
     ValidatorRegistry,
 )
+from clean_agents.crafters.validators.collision import installed_skill_names
 from clean_agents.crafters.validators.semantic import extract_keywords, sniff_language
 
 if TYPE_CHECKING:
@@ -307,6 +308,29 @@ class SkillL2Contradictions(ValidatorBase[SkillSpec]):
         ]
 
 
+class SkillL3NameCollision(ValidatorBase[SkillSpec]):
+    level = Level.L3
+    artifact_type = ArtifactType.SKILL
+    rule_id = "SKILL-L3-NAME-COLLISION"
+
+    def check(self, spec: SkillSpec, ctx: ValidationContext) -> list[ValidationFinding]:
+        names = installed_skill_names(ctx.installed_roots)
+        if spec.name in names:
+            return [ValidationFinding(
+                rule_id=self.rule_id,
+                severity=Severity.CRITICAL,
+                message=(
+                    f"name {spec.name!r} collides with installed skill at {names[spec.name]}"
+                ),
+                location="spec.name",
+                fix_hint=(
+                    f"Rename to {spec.name}-v2 / {spec.name}-project / {spec.name}-custom "
+                    "or pick a more distinctive name."
+                ),
+            )]
+        return []
+
+
 def register_builtin(registry: ValidatorRegistry) -> None:
     """Called from crafters package init to register L1 validators."""
     for cls in (
@@ -314,5 +338,6 @@ def register_builtin(registry: ValidatorRegistry) -> None:
         SkillL2HardcodedStats, SkillL2HardcodedDates, SkillL2LanguageMix,
         SkillL2TriggerCoverage, SkillL2ProgressiveDisclosure, SkillL2PromisesVsDelivery,
         SkillL2Contradictions,
+        SkillL3NameCollision,
     ):
         registry.register(cls())

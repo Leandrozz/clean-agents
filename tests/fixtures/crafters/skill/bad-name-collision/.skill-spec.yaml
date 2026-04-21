@@ -1,0 +1,8 @@
+name: clean-agents
+version: 0.1.0
+description: A fixture that intentionally reuses the name 'clean-agents' to trigger L3-NAME-COLLISION.
+artifact_type: skill
+language: en
+triggers: ["fixture", "collision"]
+references: []
+body_outline: []
