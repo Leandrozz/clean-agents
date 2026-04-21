@@ -38,3 +38,35 @@ def test_validate_json_format():
     import json
     parsed = json.loads(result.stdout.strip())  # Parse entire output as JSON
     assert "findings" in parsed
+
+
+def test_render_creates_bundle(tmp_path: Path):
+    spec_path = Path("tests/fixtures/crafters/skill/good-skill/.skill-spec.yaml")
+    result = runner.invoke(app, [
+        "skill", "render", str(spec_path),
+        "--output", str(tmp_path / "out"),
+    ])
+    assert result.exit_code == 0, result.stdout
+    assert (tmp_path / "out" / "SKILL.md").exists()
+    assert (tmp_path / "out" / ".skill-spec.yaml").exists()
+
+
+def test_render_blocks_on_critical(tmp_path: Path):
+    spec_path = Path("tests/fixtures/crafters/skill/bad-desc-too-long/.skill-spec.yaml")
+    result = runner.invoke(app, [
+        "skill", "render", str(spec_path),
+        "--output", str(tmp_path / "out"),
+    ])
+    assert result.exit_code != 0
+    assert "blocked" in result.stdout.lower() or "critical" in result.stdout.lower()
+
+
+def test_render_force_overrides(tmp_path: Path):
+    spec_path = Path("tests/fixtures/crafters/skill/bad-desc-too-long/.skill-spec.yaml")
+    result = runner.invoke(app, [
+        "skill", "render", str(spec_path),
+        "--output", str(tmp_path / "out"),
+        "--force",
+    ])
+    assert result.exit_code == 0
+    assert (tmp_path / "out" / "SKILL.md").exists()

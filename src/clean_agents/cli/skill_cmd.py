@@ -15,6 +15,7 @@ from clean_agents.crafters.base import ArtifactType
 from clean_agents.crafters.skill.spec import SkillSpec
 from clean_agents.crafters.validators.base import (
     Level,
+    Severity,
     ValidationContext,
     ValidationReport,
     get_registry,
@@ -130,9 +131,36 @@ def validate_cmd(
 
 def render_cmd(
     spec: str = typer.Argument(..., help="Path to .skill-spec.yaml"),
+    output: str = typer.Option(..., "--output", "-o", help="Output bundle directory"),
+    zip_: bool = typer.Option(False, "--zip", help="Package as .skill zip"),
+    force: bool = typer.Option(False, "--force", help="Ignore HIGH/CRITICAL findings"),
 ) -> None:
-    """Render a Skill bundle from a spec (stub — wired in M6)."""
-    console.print(f"[yellow]skill render {spec}: coming in M6[/]")
+    p = _Path(spec)
+    if not p.exists():
+        console.print(f"[red]spec not found:[/] {p}")
+        raise typer.Exit(code=2)
+
+    skill_spec = SkillSpec.model_validate(_yaml.safe_load(p.read_text(encoding="utf-8")))
+    out_dir = _Path(output)
+
+    ctx = ValidationContext(bundle_root=out_dir, installed_roots=default_installed_roots())
+    report = _run_validators(skill_spec, ctx, {Level.L1, Level.L2, Level.L3})
+
+    if report.has_critical() and not force:
+        console.print("[red]Render blocked — critical findings present.[/]")
+        for f in report.findings:
+            if f.severity is Severity.CRITICAL:
+                console.print(f"  CRITICAL {f.rule_id}: {f.message}")
+        raise typer.Exit(code=1)
+
+    from clean_agents.crafters.skill.scaffold import render_skill_bundle
+    bundle = render_skill_bundle(skill_spec, out_dir)
+    console.print(f"[green]Bundle rendered:[/] {bundle.output_dir}")
+
+    if zip_:
+        import shutil
+        shutil.make_archive(str(out_dir), "zip", out_dir)
+        console.print(f"[green]Zipped:[/] {out_dir}.zip")
 
 
 def publish_cmd(
