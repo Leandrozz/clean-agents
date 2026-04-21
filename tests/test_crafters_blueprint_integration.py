@@ -70,3 +70,28 @@ def test_skill_design_for_agent_loads_blueprint(tmp_path: Path):
     assert (out / ".skill-spec.yaml").exists()
     spec_data = yaml.safe_load((out / ".skill-spec.yaml").read_text(encoding="utf-8"))
     assert "risk_evaluator" in spec_data["description"]
+
+
+def test_design_suggest_artifacts_module(tmp_path: Path):
+    bp = {
+        "name": "demo",
+        "agents": [
+            {"name": "a", "role": "legal risk assessor with jargon"},
+            {"name": "b", "role": "intent classifier"},
+        ],
+    }
+    bp_path = tmp_path / "blueprint.yaml"
+    bp_path.write_text(yaml.safe_dump(bp), encoding="utf-8")
+
+    result = runner.invoke(
+        app,
+        [
+            "design",
+            "--blueprint", str(bp_path),
+            "--module", "suggest-artifacts",
+            "--no-interactive",
+        ],
+    )
+    assert result.exit_code == 0, result.stdout
+    # It prints an ArtifactRef table with `--for-agent` suggestions
+    assert "--for-agent" in result.stdout
