@@ -82,7 +82,7 @@ def design_cmd(
     lang: str = typer.Option("en", "--lang", help="Output language (en, es, pt)"),
     output: str = typer.Option(".", "--output", "-o", help="Output bundle directory"),
 ) -> None:
-    from clean_agents.crafters.session import DesignConfig, DesignSession, Phase
+    from clean_agents.crafters.session import DesignConfig, DesignSession
 
     if spec:
         spec_data = _yaml.safe_load(_Path(spec).read_text(encoding="utf-8"))
