@@ -113,3 +113,15 @@ def test_contradictions_detects_with_mock_ai():
     findings = validator.check(spec, ValidationContext(enable_ai=True))
     assert findings
     assert findings[0].rule_id == "SKILL-L2-CONTRADICTIONS"
+
+
+def test_contradictions_returns_info_finding_when_ai_raises():
+    spec = _spec_with_body("Always run guardrails.\nNever run guardrails.")
+    failing_client = MagicMock()
+    failing_client.detect_contradictions = MagicMock(side_effect=RuntimeError("API unreachable"))
+    validator = SkillL2Contradictions(client=failing_client)
+    findings = validator.check(spec, ValidationContext(enable_ai=True))
+    assert len(findings) == 1
+    assert findings[0].severity is Severity.INFO
+    assert "AI contradiction check failed" in findings[0].message
+    assert "API unreachable" in findings[0].message
