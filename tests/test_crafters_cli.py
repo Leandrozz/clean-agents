@@ -103,3 +103,48 @@ def test_publish_dry_run():
     ])
     assert result.exit_code == 0, result.stdout
     assert "dry" in result.stdout.lower()
+
+
+def test_validate_with_eval_flag(monkeypatch, tmp_path: Path):
+    from unittest.mock import MagicMock
+
+    from clean_agents.integrations import anthropic as ant
+
+    fake_client = MagicMock()
+    fake_client.messages.create.return_value = MagicMock(
+        content=[MagicMock(text="ACTIVATE")]
+    )
+    monkeypatch.setattr(
+        ant, "get_architect", lambda: ant.ClaudeArchitect(client=fake_client)
+    )
+
+    # Bundle must have evals in its spec; good-skill doesn't, so write a tmp one.
+    import yaml as _y
+    spec = {
+        "name": "eval-test",
+        "description": (
+            "A fixture used to test the --eval flag against a mocked Anthropic client."
+        ),
+        "artifact_type": "skill",
+        "language": "en",
+        "triggers": ["eval", "test"],
+        "references": [],
+        "body_outline": [],
+        "evals": {
+            "positive_cases": [{"prompt": "yes", "expected": "activate"}],
+            "negative_cases": [{"prompt": "no", "expected": "ignore"}],
+        },
+    }
+    (tmp_path / "spec.yaml").write_text(_y.safe_dump(spec), encoding="utf-8")
+
+    result = runner.invoke(
+        app,
+        [
+            "skill", "validate", str(tmp_path / "spec.yaml"),
+            "--level", "L4", "--eval", "--ai",
+        ],
+    )
+    # Either passes with info or fails with an FPR finding — we only care that
+    # the harness ran to completion without crashing and the fake client was hit.
+    assert "SKILL-L4-ACTIVATION-PRECISION" in result.stdout or result.exit_code in (0, 1)
+    assert fake_client.messages.create.called

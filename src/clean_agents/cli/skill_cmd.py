@@ -21,6 +21,7 @@ from clean_agents.crafters.validators.base import (
     get_registry,
 )
 from clean_agents.crafters.validators.collision import default_installed_roots
+from clean_agents.crafters.validators.runtime import ActivationFn
 
 console = Console()
 
@@ -35,6 +36,32 @@ def _load_spec(path: _Path) -> tuple[SkillSpec, _Path | None]:
         bundle_root = path.parent if path.parent.exists() else None
     data = _yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
     return SkillSpec.model_validate(data), bundle_root
+
+
+def _make_activation_fn(arch) -> ActivationFn:
+    """Return a prompt -> bool callable backed by the given ClaudeArchitect."""
+
+    def _fn(prompt: str) -> bool:
+        try:
+            resp = arch._client.messages.create(
+                model="claude-haiku-4-5",
+                max_tokens=16,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": (
+                            "Should a Claude Code skill be activated for the "
+                            "following user prompt? Reply ACTIVATE or IGNORE, "
+                            f"nothing else.\n\nPrompt: {prompt}"
+                        ),
+                    }
+                ],
+            )
+            return "ACTIVATE" in resp.content[0].text.upper()
+        except Exception:
+            return False
+
+    return _fn
 
 
 def _run_validators(
@@ -60,6 +87,9 @@ def _run_validators(
         # Inject AI client into contradiction validator
         if v.rule_id == "SKILL-L2-CONTRADICTIONS":
             v.client = ai_client
+        # Inject a real activation fn when --eval runs with --ai
+        if v.rule_id == "SKILL-L4-ACTIVATION-PRECISION" and ai_client is not None:
+            v.activate_fn = _make_activation_fn(ai_client)
         try:
             report.findings.extend(v.check(spec, ctx))
         except Exception as e:
