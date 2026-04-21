@@ -10,6 +10,7 @@ from clean_agents.crafters.validators.base import (
     ValidationContext,
     ValidationFinding,
     ValidatorBase,
+    ValidatorRegistry,
 )
 
 
@@ -115,7 +116,7 @@ class SkillL1RefsOrphan(ValidatorBase[SkillSpec]):
         return out
 
 
-def register_builtin(registry) -> None:
+def register_builtin(registry: ValidatorRegistry) -> None:
     """Called from crafters package init to register L1 validators."""
     registry.register(SkillL1NameDir())
     registry.register(SkillL1DescLength())

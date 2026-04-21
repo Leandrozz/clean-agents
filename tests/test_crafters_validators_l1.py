@@ -91,3 +91,61 @@ def test_refs_orphan_fires_for_unmentioned_file(tmp_path: Path):
     )
     findings = SkillL1RefsOrphan().check(spec, ValidationContext(bundle_root=bundle))
     assert any(f.rule_id == "SKILL-L1-REFS-ORPHAN" for f in findings)
+
+
+def test_desc_length_in_range_passes():
+    spec = SkillSpec(
+        name="x",
+        description="x" * 100,
+        triggers=["x"], references=[], body_outline=[],
+    )
+    findings = SkillL1DescLength().check(spec, ValidationContext())
+    assert findings == []
+
+
+def test_refs_exist_skips_when_no_bundle_root():
+    spec = SkillSpec(
+        name="x",
+        description="A fixture description longer than fifty chars to pass length check.",
+        triggers=["x"],
+        references=[ReferenceFile(path=Path("references/any.md"), topic="", outline=[])],
+        body_outline=[],
+    )
+    assert SkillL1RefsExist().check(spec, ValidationContext()) == []
+
+
+def test_refs_exist_passes_when_all_present(tmp_path: Path):
+    bundle = tmp_path / "s"
+    (bundle / "references").mkdir(parents=True)
+    (bundle / "references" / "ok.md").write_text("# ok\n")
+    spec = SkillSpec(
+        name="s",
+        description="A fixture description longer than fifty chars to pass length check.",
+        triggers=["s"],
+        references=[ReferenceFile(path=Path("references/ok.md"), topic="", outline=[])],
+        body_outline=[],
+    )
+    assert SkillL1RefsExist().check(spec, ValidationContext(bundle_root=bundle)) == []
+
+
+def test_refs_orphan_skips_when_no_bundle_root():
+    spec = SkillSpec(
+        name="x",
+        description="A fixture description longer than fifty chars to pass length check.",
+        triggers=["x"], references=[], body_outline=[],
+    )
+    assert SkillL1RefsOrphan().check(spec, ValidationContext()) == []
+
+
+def test_refs_orphan_passes_when_all_declared(tmp_path: Path):
+    bundle = tmp_path / "s"
+    (bundle / "references").mkdir(parents=True)
+    (bundle / "references" / "ok.md").write_text("# ok\n")
+    spec = SkillSpec(
+        name="s",
+        description="A fixture description longer than fifty chars to pass length check.",
+        triggers=["s"],
+        references=[ReferenceFile(path=Path("references/ok.md"), topic="", outline=[])],
+        body_outline=[],
+    )
+    assert SkillL1RefsOrphan().check(spec, ValidationContext(bundle_root=bundle)) == []
