@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from clean_agents.crafters.base import ArtifactType
 from clean_agents.crafters.skill.spec import SkillSpec
 from clean_agents.crafters.validators.base import (
@@ -112,6 +114,64 @@ class SkillL1RefsOrphan(ValidatorBase[SkillSpec]):
                         f"Add {path.name} to spec.references or delete it."
                     ),
                     auto_fixable=False,
+                ))
+        return out
+
+
+_PCT_RE = re.compile(r"\b\d+\.\d+\s?%")
+_CVE_RE = re.compile(r"\bCVE-\d{4}-\d+\b", re.IGNORECASE)
+_PAPER_RE = re.compile(r"\bpaper de \d{4}\b", re.IGNORECASE)
+_YEAR_RE = re.compile(r"\b(19|20)\d{2}\b")
+
+
+def _iter_body_text(spec: SkillSpec) -> list[tuple[str, str]]:
+    """Yield (location, text) per section."""
+    return [(f"body_outline[{i}]", s.body) for i, s in enumerate(spec.body_outline)]
+
+
+class SkillL2HardcodedStats(ValidatorBase[SkillSpec]):
+    level = Level.L2
+    artifact_type = ArtifactType.SKILL
+    rule_id = "SKILL-L2-HARDCODED-STATS"
+
+    def check(self, spec: SkillSpec, ctx: ValidationContext) -> list[ValidationFinding]:
+        out: list[ValidationFinding] = []
+        patterns = [
+            (_PCT_RE, "percentage"),
+            (_CVE_RE, "CVE id"),
+            (_PAPER_RE, "paper year"),
+        ]
+        for loc, text in _iter_body_text(spec):
+            for pat, kind in patterns:
+                for m in pat.finditer(text):
+                    out.append(ValidationFinding(
+                        rule_id=self.rule_id,
+                        severity=Severity.HIGH,
+                        message=f"hard-coded {kind} ages poorly: {m.group(0)!r}",
+                        location=loc,
+                        fix_hint=(
+                            f"Move {m.group(0)!r} to references/ "
+                            "so it can be updated independently."
+                        ),
+                    ))
+        return out
+
+
+class SkillL2HardcodedDates(ValidatorBase[SkillSpec]):
+    level = Level.L2
+    artifact_type = ArtifactType.SKILL
+    rule_id = "SKILL-L2-HARDCODED-DATES"
+
+    def check(self, spec: SkillSpec, ctx: ValidationContext) -> list[ValidationFinding]:
+        out: list[ValidationFinding] = []
+        for loc, text in _iter_body_text(spec):
+            for m in _YEAR_RE.finditer(text):
+                out.append(ValidationFinding(
+                    rule_id=self.rule_id,
+                    severity=Severity.MEDIUM,
+                    message=f"hard-coded year {m.group(0)!r} ages poorly",
+                    location=loc,
+                    fix_hint="Replace with a relative reference or move to references/.",
                 ))
         return out
 
