@@ -1,0 +1,16 @@
+name: good-skill
+version: 0.1.0
+description: A cleanly designed fixture used to prove L1 validators pass when a skill follows every structural rule.
+artifact_type: skill
+language: en
+license: MIT
+triggers: ["fixture", "good skill", "structural test"]
+references:
+  - path: references/taxonomy.md
+    topic: Trigger taxonomy for fixture tests
+    outline: ["Intro", "Examples"]
+    mentioned_in: ["overview"]
+body_outline:
+  - heading: Overview
+    anchor: overview
+    body: See references/taxonomy.md for the full matrix.
