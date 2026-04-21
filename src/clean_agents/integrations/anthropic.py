@@ -262,10 +262,10 @@ Format your response as:
         return response.content[0].text
 
 
-_architect: "ClaudeArchitect | None" = None
+_architect: ClaudeArchitect | None = None
 
 
-def get_architect() -> "ClaudeArchitect":
+def get_architect() -> ClaudeArchitect:
     global _architect
     if _architect is None:
         from anthropic import Anthropic

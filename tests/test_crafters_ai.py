@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock
 
-import typer
 from typer.testing import CliRunner
 
 from clean_agents.cli.main import app
