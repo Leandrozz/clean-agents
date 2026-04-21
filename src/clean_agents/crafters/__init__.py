@@ -35,3 +35,6 @@ __all__ = [
     "ValidatorRegistry",
     "get_registry",
 ]
+
+from clean_agents.crafters.skill.validators import register_builtin as _reg_skill
+_reg_skill(get_registry())
