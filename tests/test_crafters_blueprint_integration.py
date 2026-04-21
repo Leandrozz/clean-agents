@@ -36,3 +36,39 @@ def test_existing_blueprint_yaml_still_loads():
     }
     bp = Blueprint.model_validate(data)
     assert bp.agents[0].recommended_artifacts == []
+
+
+import yaml
+from typer.testing import CliRunner
+
+from clean_agents.cli.main import app
+
+runner = CliRunner()
+
+
+def test_skill_design_for_agent_loads_blueprint(tmp_path: Path):
+    bp = {
+        "name": "demo",
+        "agents": [
+            {"name": "risk_evaluator", "role": "legal risk assessor"},
+            {"name": "classifier", "role": "intent router"},
+        ],
+    }
+    bp_path = tmp_path / "blueprint.yaml"
+    bp_path.write_text(yaml.safe_dump(bp), encoding="utf-8")
+
+    out = tmp_path / "skill-out"
+    result = runner.invoke(
+        app,
+        [
+            "skill", "design",
+            "--for-agent", "risk_evaluator",
+            "--blueprint", str(bp_path),
+            "--no-interactive",
+            "--output", str(out),
+        ],
+    )
+    assert result.exit_code == 0, result.stdout
+    assert (out / ".skill-spec.yaml").exists()
+    spec_data = yaml.safe_load((out / ".skill-spec.yaml").read_text(encoding="utf-8"))
+    assert "risk_evaluator" in spec_data["description"]

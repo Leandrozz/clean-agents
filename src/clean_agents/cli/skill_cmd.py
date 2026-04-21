@@ -128,12 +128,29 @@ def design_cmd(
 ) -> None:
     from clean_agents.crafters.session import DesignConfig, DesignSession
 
+    # Load blueprint context if requested (must happen before we decide
+    # which branch to take — agent_context can make the description branch viable).
+    agent_context: str = ""
+    if for_agent and blueprint:
+        from clean_agents.core.blueprint import Blueprint
+
+        bp = Blueprint.load(_Path(blueprint))
+        agent = bp.get_agent(for_agent)
+        if agent is None:
+            console.print(f"[red]agent {for_agent!r} not found in blueprint[/]")
+            raise typer.Exit(code=2)
+        agent_context = (
+            f" For agent {agent.name!r} ({agent.role}); "
+            f"model={agent.model.primary}, memory="
+            f"{'graphrag' if agent.memory.graphrag else 'short-term'}."
+        )
+
     if spec:
         spec_data = _yaml.safe_load(_Path(spec).read_text(encoding="utf-8"))
         skill_spec = SkillSpec.model_validate(spec_data)
-    elif description:
-        # Minimal heuristic draft from NL description
-        desc = description.strip()
+    elif description or agent_context:
+        # Minimal heuristic draft from NL description or agent context
+        desc = (description or f"Skill supporting {for_agent}").strip() + agent_context
         if len(desc) < 50:
             desc = (desc + " — designed via clean-agents skill design --no-interactive.").strip()
         if len(desc) > 500:
