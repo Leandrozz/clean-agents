@@ -46,7 +46,8 @@ def _test_blueprint() -> Blueprint:
 
 
 def test_registry_register_and_list():
-    registry = PluginRegistry()
+    # auto_discover=False: isolated from installed entry-point plugins
+    registry = PluginRegistry(auto_discover=False)
     plugin = TokenBudgetAuditor()
     registry.register(plugin)
     manifests = registry.list_plugins()
@@ -55,7 +56,8 @@ def test_registry_register_and_list():
 
 
 def test_registry_unregister():
-    registry = PluginRegistry()
+    # auto_discover=False: isolated from installed entry-point plugins
+    registry = PluginRegistry(auto_discover=False)
     registry.register(TokenBudgetAuditor())
     registry.unregister("token-budget-auditor")
     assert len(registry.list_plugins()) == 0

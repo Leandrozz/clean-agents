@@ -168,9 +168,19 @@ class PluginRegistry:
 
     ENTRY_POINT_GROUP = "clean_agents.plugins"
 
-    def __init__(self) -> None:
+    def __init__(self, auto_discover: bool = True) -> None:
+        """Create a plugin registry.
+
+        Args:
+            auto_discover: If True (default), discover plugins from entry points
+                and plugin directories on first access to ``plugins``. Set to
+                False in tests that want an isolated, empty registry. Matches
+                the convention used by ``ValidatorRegistry`` in the crafters
+                module.
+        """
         self._plugins: dict[str, BasePlugin] = {}
-        self._loaded: bool = False
+        # _loaded is True when discovery is either done or explicitly skipped
+        self._loaded: bool = not auto_discover
 
     @property
     def plugins(self) -> dict[str, BasePlugin]:
