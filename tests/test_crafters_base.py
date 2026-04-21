@@ -134,3 +134,40 @@ def test_validation_context_defaults():
     ctx = ValidationContext(bundle_root=None, installed_roots=[])
     assert ctx.bundle_root is None
     assert ctx.installed_roots == []
+
+
+def test_has_critical_false_when_no_critical():
+    report = ValidationReport(findings=[
+        ValidationFinding(rule_id="R1", severity=Severity.HIGH, message="high only"),
+        ValidationFinding(rule_id="R2", severity=Severity.LOW, message="low only"),
+    ])
+    assert report.has_critical() is False
+    # has_blocking() should still be True because HIGH is blocking
+    assert report.has_blocking() is True
+
+
+def test_by_rule_filters_findings():
+    findings = [
+        ValidationFinding(rule_id="R1", severity=Severity.CRITICAL, message="x"),
+        ValidationFinding(rule_id="R2", severity=Severity.HIGH, message="y"),
+        ValidationFinding(rule_id="R1", severity=Severity.LOW, message="z"),
+    ]
+    report = ValidationReport(findings=findings)
+    r1 = report.by_rule("R1")
+    assert len(r1) == 2
+    assert all(f.rule_id == "R1" for f in r1)
+    assert report.by_rule("UNKNOWN") == []
+
+
+def test_extend_merges_findings_in_place():
+    a = ValidationReport(findings=[
+        ValidationFinding(rule_id="R1", severity=Severity.HIGH, message="first"),
+    ])
+    b = ValidationReport(findings=[
+        ValidationFinding(rule_id="R2", severity=Severity.LOW, message="second"),
+        ValidationFinding(rule_id="R3", severity=Severity.INFO, message="third"),
+    ])
+    a.extend(b)
+    assert len(a.findings) == 3
+    # b must not be mutated by extend
+    assert len(b.findings) == 2
