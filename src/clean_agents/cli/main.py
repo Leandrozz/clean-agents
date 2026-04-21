@@ -175,6 +175,8 @@ from clean_agents.cli.skill_cmd import (  # noqa: E402
     validate_cmd as skill_validate_cmd,
     render_cmd as skill_render_cmd,
     publish_cmd as skill_publish_cmd,
+    install_cmd as skill_install_cmd,
+    list_cmd as skill_list_cmd,
 )
 
 skill_app = typer.Typer(
@@ -186,6 +188,8 @@ skill_app.command("design", help="Start an interactive Skill design session")(sk
 skill_app.command("validate", help="Validate a Skill bundle or spec")(skill_validate_cmd)
 skill_app.command("render", help="Render a Skill bundle from .skill-spec.yaml")(skill_render_cmd)
 skill_app.command("publish", help="Publish a Skill to the marketplace")(skill_publish_cmd)
+skill_app.command("install", help="Install a skill from the marketplace")(skill_install_cmd)
+skill_app.command("list", help="List installed and/or marketplace skills")(skill_list_cmd)
 app.add_typer(skill_app)
 
 

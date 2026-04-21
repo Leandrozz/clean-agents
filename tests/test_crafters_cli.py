@@ -148,3 +148,8 @@ def test_validate_with_eval_flag(monkeypatch, tmp_path: Path):
     # the harness ran to completion without crashing and the fake client was hit.
     assert "SKILL-L4-ACTIVATION-PRECISION" in result.stdout or result.exit_code in (0, 1)
     assert fake_client.messages.create.called
+
+
+def test_skill_list_installed_runs():
+    result = runner.invoke(app, ["skill", "list", "--installed"])
+    assert result.exit_code == 0

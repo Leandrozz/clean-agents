@@ -298,3 +298,37 @@ def publish_cmd(
         return
 
     console.print("[yellow]Marketplace publish integration coming in M10.[/]")
+
+
+def install_cmd(
+    name: str = typer.Argument(..., help="Skill name to install"),
+) -> None:
+    """Install a skill from the marketplace (stub — full integration in M11)."""
+    console.print(
+        f"[yellow]Skill marketplace install for {name!r} coming in M11.[/] "
+        "For now, install skills manually via git clone into ~/.claude/skills/."
+    )
+
+
+def list_cmd(
+    installed: bool = typer.Option(False, "--installed", help="List locally installed skills"),
+    marketplace: bool = typer.Option(
+        False, "--marketplace", help="List skills from the marketplace (coming in M11)"
+    ),
+) -> None:
+    """List skills — locally installed (default) and/or available in marketplace."""
+    from clean_agents.crafters.validators.collision import (
+        default_installed_roots,
+        installed_skill_names,
+    )
+
+    # Default: show installed skills unless only --marketplace was given
+    if installed or not marketplace:
+        names = installed_skill_names(default_installed_roots())
+        if not names:
+            console.print("[dim]No skills installed. Look under ~/.claude/skills/.[/]")
+        else:
+            for n, p in sorted(names.items()):
+                console.print(f"[green]{n}[/] — {p}")
+    if marketplace:
+        console.print("[yellow]Skill marketplace listing coming in M11.[/]")
