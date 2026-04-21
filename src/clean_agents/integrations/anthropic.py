@@ -7,12 +7,68 @@ prompt generation, and interactive design iteration.
 from __future__ import annotations
 
 import json
+import json as _json_ca
 from typing import Any
 
 from clean_agents.core.blueprint import Blueprint
 
 
-class ClaudeArchitect:
+class _SkillCrafterMixin:
+    """Mixin pulled into ClaudeArchitect for skill-crafter-specific calls."""
+
+    def detect_contradictions(self, text: str) -> list[str]:
+        prompt = (
+            "You are reviewing a Claude Code skill body for internal contradictions. "
+            "Reply with a JSON array of short sentences describing contradictions. "
+            "Return [] if there are none.\n\n"
+            f"--- BEGIN BODY ---\n{text}\n--- END BODY ---"
+        )
+        resp = self._client.messages.create(
+            model="claude-haiku-4-5", max_tokens=512,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        payload = resp.content[0].text
+        try:
+            return list(_json_ca.loads(payload))
+        except Exception:
+            return []
+
+    def suggest_triggers(self, description: str) -> list[str]:
+        prompt = (
+            "Suggest 5-10 distinctive activation-trigger keywords/phrases for a Claude Code "
+            "skill with this description. Reply as a JSON array of strings.\n\n"
+            f"Description: {description}"
+        )
+        resp = self._client.messages.create(
+            model="claude-haiku-4-5", max_tokens=256,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        try:
+            return list(_json_ca.loads(resp.content[0].text))
+        except Exception:
+            return []
+
+    def generate_eval_prompts(
+        self, description: str, triggers: list[str], n: int = 10,
+    ) -> dict[str, list[str]]:
+        prompt = (
+            "For a Claude Code skill with description and triggers, generate "
+            f"{n} POSITIVE prompts that SHOULD activate the skill and {n} NEGATIVE "
+            "prompts that should NOT. Reply as JSON: "
+            '{"positive":[...], "negative":[...]}\n\n'
+            f"description: {description}\ntriggers: {triggers}"
+        )
+        resp = self._client.messages.create(
+            model="claude-haiku-4-5", max_tokens=1024,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        try:
+            return _json_ca.loads(resp.content[0].text)
+        except Exception:
+            return {"positive": [], "negative": []}
+
+
+class ClaudeArchitect(_SkillCrafterMixin):
     """AI-powered architecture consultant using Claude.
 
     Wraps the Anthropic SDK to provide high-level methods for
@@ -23,15 +79,18 @@ class ClaudeArchitect:
         self,
         api_key: str | None = None,
         model: str = "claude-sonnet-4-6",
+        client: Any | None = None,
     ) -> None:
-        try:
-            import anthropic
-        except ImportError:
-            raise ImportError(
-                "anthropic package required. Install with: pip install clean-agents"
-            )
-
-        self._client = anthropic.Anthropic(api_key=api_key)
+        if client is not None:
+            self._client = client
+        else:
+            try:
+                import anthropic
+            except ImportError:
+                raise ImportError(
+                    "anthropic package required. Install with: pip install clean-agents"
+                )
+            self._client = anthropic.Anthropic(api_key=api_key)
         self._model = model
 
     def enhance_blueprint(self, blueprint: Blueprint) -> dict[str, Any]:
@@ -201,3 +260,14 @@ Format your response as:
             messages=messages,
         )
         return response.content[0].text
+
+
+_architect: ClaudeArchitect | None = None
+
+
+def get_architect() -> ClaudeArchitect:
+    global _architect
+    if _architect is None:
+        from anthropic import Anthropic
+        _architect = ClaudeArchitect(client=Anthropic())
+    return _architect

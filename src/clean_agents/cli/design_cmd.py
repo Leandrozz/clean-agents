@@ -54,6 +54,54 @@ def _try_create_architect(
         return None
 
 
+def _module_suggest_artifacts(blueprint: Blueprint) -> None:
+    """Phase-5 module: print per-agent artifact suggestions as a Rich table."""
+    from clean_agents.crafters.base import ArtifactRef, ArtifactType
+
+    table = Table(title="Suggested artifacts")
+    table.add_column("Agent")
+    table.add_column("Type")
+    table.add_column("Name")
+    table.add_column("Rationale")
+    table.add_column("Priority")
+
+    for agent in blueprint.agents:
+        suggestions: list[ArtifactRef] = []
+        role_lc = agent.role.lower()
+        if any(w in role_lc for w in ("legal", "risk", "jargon", "medical", "financial")):
+            suggestions.append(
+                ArtifactRef(
+                    artifact_type=ArtifactType.SKILL,
+                    name=f"{agent.name.replace('_', '-')}-domain-patterns",
+                    rationale="domain-specific jargon indicates a dedicated Skill",
+                    priority="recommended",
+                )
+            )
+        if agent.memory.graphrag:
+            suggestions.append(
+                ArtifactRef(
+                    artifact_type=ArtifactType.MCP,
+                    name=f"{agent.name.replace('_', '-')}-graph-mcp",
+                    rationale="graphrag memory benefits from a typed MCP wrapper",
+                    priority="recommended",
+                )
+            )
+        for s in suggestions:
+            table.add_row(
+                agent.name,
+                s.artifact_type.value,
+                s.name,
+                s.rationale,
+                s.priority,
+            )
+            console.print(
+                f"  run: clean-agents skill design --for-agent {agent.name} "
+                f"--blueprint <blueprint.yaml>"
+            )
+
+    console.print(table)
+
+
 def _ai_enhance_phase(
     console: Console,
     architect: ClaudeArchitect,
@@ -327,6 +375,12 @@ def design_cmd(
     ai_model: str = typer.Option(
         "claude-sonnet-4-6", "--ai-model", help="Model for AI-enhanced analysis"
     ),
+    blueprint_path: str = typer.Option(
+        "", "--blueprint", help="Path to an existing blueprint.yaml (used by --module)"
+    ),
+    module: str = typer.Option(
+        "", "--module", help="Run a Phase-5 module (e.g., 'suggest-artifacts')"
+    ),
 ) -> None:
     """Start an interactive architecture design session.
 
@@ -341,6 +395,20 @@ def design_cmd(
         )
     )
     console.print()
+
+    # Phase-5 module short-circuit (no heuristic run needed)
+    if module:
+        if not blueprint_path:
+            console.print("[red]Error:[/] --module requires --blueprint")
+            raise typer.Exit(2)
+        from clean_agents.core.blueprint import Blueprint
+
+        bp = Blueprint.load(Path(blueprint_path))
+        if module == "suggest-artifacts":
+            _module_suggest_artifacts(bp)
+            return
+        console.print(f"[red]Error:[/] unknown --module value {module!r}")
+        raise typer.Exit(2)
 
     # Load config
     config = Config.discover()

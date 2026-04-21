@@ -1,0 +1,24 @@
+---
+name: {{ spec.name }}
+description: {{ spec.description }}
+version: {{ spec.version }}
+{%- if spec.author %}
+author: {{ spec.author }}
+{%- endif %}
+language: {{ spec.language }}
+license: {{ spec.license }}
+---
+
+{% for section in spec.body_outline -%}
+# {{ section.heading }}{% if section.anchor %} {{ "{#" }}{{ section.anchor }}}{% endif %}
+
+{{ section.body }}
+
+{% endfor -%}
+{%- if spec.references %}
+## References
+
+{% for ref in spec.references -%}
+- [{{ ref.topic }}]({{ ref.path }})
+{% endfor -%}
+{%- endif %}

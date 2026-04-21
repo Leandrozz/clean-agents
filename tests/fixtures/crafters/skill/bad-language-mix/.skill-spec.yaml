@@ -1,0 +1,10 @@
+name: bad-language-mix
+version: 0.1.0
+description: Fixture with a Spanish quote inside an English-declared skill to trigger LANGUAGE-MIX.
+artifact_type: skill
+language: en
+triggers: ["fixture", "language mix"]
+references: []
+body_outline:
+  - heading: Example
+    body: "The agent replied: 'si puedes porfi, revisá el commit antes de mergear'."

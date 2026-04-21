@@ -1,0 +1,127 @@
+from __future__ import annotations
+
+from pathlib import Path
+from unittest.mock import MagicMock
+
+from clean_agents.crafters.skill.spec import ReferenceFile, SkillSection, SkillSpec
+from clean_agents.crafters.skill.validators import (
+    SkillL2Contradictions,
+    SkillL2HardcodedDates,
+    SkillL2HardcodedStats,
+    SkillL2LanguageMix,
+    SkillL2ProgressiveDisclosure,
+    SkillL2PromisesVsDelivery,
+    SkillL2TriggerCoverage,
+)
+from clean_agents.crafters.validators.base import Severity, ValidationContext
+
+
+def _spec_with_body(body: str) -> SkillSpec:
+    return SkillSpec(
+        name="s",
+        description="A fixture description longer than fifty chars to pass length check.",
+        triggers=["s"],
+        references=[],
+        body_outline=[SkillSection(heading="Body", body=body)],
+    )
+
+
+def test_hardcoded_stats_percent():
+    body = "Accuracy was 82.4% in benchmark."
+    findings = SkillL2HardcodedStats().check(_spec_with_body(body), ValidationContext())
+    assert any(f.rule_id == "SKILL-L2-HARDCODED-STATS" for f in findings)
+
+
+def test_hardcoded_stats_cve():
+    body = "Mitigates CVE-2025-6514 attacks."
+    findings = SkillL2HardcodedStats().check(_spec_with_body(body), ValidationContext())
+    assert any("CVE" in f.message for f in findings)
+
+
+def test_hardcoded_stats_paper_year():
+    body = "as shown by paper de 2024 results"
+    findings = SkillL2HardcodedStats().check(_spec_with_body(body), ValidationContext())
+    assert findings
+
+
+def test_hardcoded_dates_fires_on_specific_year():
+    body = "In 2024, the team shipped v1."
+    findings = SkillL2HardcodedDates().check(_spec_with_body(body), ValidationContext())
+    assert findings
+    assert findings[0].severity is Severity.MEDIUM
+
+
+def test_language_mix_fires_for_spanish_in_english_skill():
+    spec = _spec_with_body("The agent said: 'si puedes porfi, revisá el commit antes de mergear'.")
+    findings = SkillL2LanguageMix().check(spec, ValidationContext())
+    assert any(f.rule_id == "SKILL-L2-LANGUAGE-MIX" for f in findings)
+
+
+def test_trigger_coverage_fires_below_80pct():
+    spec = SkillSpec(
+        name="s",
+        description="Designs, validates, renders, publishes and ships full-bundle artifacts.",
+        triggers=["unrelated"],
+        references=[],
+        body_outline=[],
+    )
+    findings = SkillL2TriggerCoverage().check(spec, ValidationContext())
+    assert findings
+
+
+def test_progressive_disclosure_fires_long_body_no_refs():
+    big = "word " * 2500
+    spec = SkillSpec(
+        name="s",
+        description="A fixture description longer than fifty chars to pass length check.",
+        triggers=["s"],
+        references=[],
+        body_outline=[SkillSection(heading="Big", body=big)],
+    )
+    findings = SkillL2ProgressiveDisclosure().check(spec, ValidationContext())
+    assert findings
+
+
+def test_promises_vs_delivery_fires_for_empty_ref(tmp_path: Path):
+    bundle = tmp_path / "s"
+    (bundle / "references").mkdir(parents=True)
+    (bundle / "references" / "taxonomy.md").write_text("")  # empty
+    spec = SkillSpec(
+        name="s",
+        description="A fixture description longer than fifty chars to pass length check.",
+        triggers=["s"],
+        references=[ReferenceFile(path=Path("references/taxonomy.md"), topic="t")],
+        body_outline=[SkillSection(heading="Overview", body="See references/taxonomy.md")],
+    )
+    findings = SkillL2PromisesVsDelivery().check(spec, ValidationContext(bundle_root=bundle))
+    assert findings
+
+
+def test_contradictions_requires_ai_context():
+    spec = _spec_with_body("This skill is always safe.\nThis skill is never safe.")
+    findings = SkillL2Contradictions().check(spec, ValidationContext(enable_ai=False))
+    assert findings == []
+
+
+def test_contradictions_detects_with_mock_ai():
+    spec = _spec_with_body("Always run guardrails.\nNever run guardrails.")
+    validator = SkillL2Contradictions(client=MagicMock(
+        detect_contradictions=MagicMock(return_value=[
+            "Body claims both 'always run guardrails' and 'never run guardrails'.",
+        ])
+    ))
+    findings = validator.check(spec, ValidationContext(enable_ai=True))
+    assert findings
+    assert findings[0].rule_id == "SKILL-L2-CONTRADICTIONS"
+
+
+def test_contradictions_returns_info_finding_when_ai_raises():
+    spec = _spec_with_body("Always run guardrails.\nNever run guardrails.")
+    failing_client = MagicMock()
+    failing_client.detect_contradictions = MagicMock(side_effect=RuntimeError("API unreachable"))
+    validator = SkillL2Contradictions(client=failing_client)
+    findings = validator.check(spec, ValidationContext(enable_ai=True))
+    assert len(findings) == 1
+    assert findings[0].severity is Severity.INFO
+    assert "AI contradiction check failed" in findings[0].message
+    assert "API unreachable" in findings[0].message
