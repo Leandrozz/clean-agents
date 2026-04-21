@@ -72,9 +72,55 @@ def _finding_for_exception(rule_id: str, err: Exception):
 
 def design_cmd(
     description: str = typer.Argument("", help="Natural-language description"),
+    ai: bool = typer.Option(False, "--ai", help="Use Anthropic SDK for richer recommendations"),
+    for_agent: str = typer.Option("", "--for-agent", help="Link this skill to a specific agent"),
+    blueprint: str = typer.Option("", "--blueprint", help="Blueprint YAML to pre-load context"),
+    spec: str = typer.Option("", "--spec", help="Structured YAML input"),
+    no_interactive: bool = typer.Option(
+        False, "--no-interactive", help="One-shot from --spec / description"
+    ),
+    lang: str = typer.Option("en", "--lang", help="Output language (en, es, pt)"),
+    output: str = typer.Option(".", "--output", "-o", help="Output bundle directory"),
 ) -> None:
-    """Start an interactive Skill design session (stub — wired in M6)."""
-    console.print("[yellow]skill design: coming in M6[/]")
+    from clean_agents.crafters.session import DesignConfig, DesignSession, Phase
+
+    if spec:
+        spec_data = _yaml.safe_load(_Path(spec).read_text(encoding="utf-8"))
+        skill_spec = SkillSpec.model_validate(spec_data)
+    elif description:
+        # Minimal heuristic draft from NL description
+        desc = description.strip()
+        if len(desc) < 50:
+            desc = (desc + " — designed via clean-agents skill design --no-interactive.").strip()
+        if len(desc) > 500:
+            desc = desc[:497] + "..."
+        # Derive a kebab-case name
+        name = "-".join(
+            tok.lower() for tok in desc.split()[:3] if tok.isalnum()
+        ) or "unnamed-skill"
+        skill_spec = SkillSpec(
+            name=name,
+            description=desc,
+            language=lang,
+            triggers=[tok.lower() for tok in desc.split()[:5] if tok.isalnum()],
+            references=[],
+            body_outline=[],
+        )
+    else:
+        console.print("[red]Provide either --spec or a description argument.[/]")
+        raise typer.Exit(code=2)
+
+    session = DesignSession[SkillSpec](
+        spec=skill_spec,
+        config=DesignConfig(enable_ai=ai, language=lang, interactive=not no_interactive),
+    )
+    session.intake(skill_spec)
+
+    if not no_interactive:
+        console.print("[yellow]Interactive design loop coming in M7; running one-shot for now.[/]")
+
+    bundle = session.render(_Path(output))
+    console.print(f"[green]Bundle written:[/] {bundle.output_dir}")
 
 
 def validate_cmd(

@@ -70,3 +70,26 @@ def test_render_force_overrides(tmp_path: Path):
     ])
     assert result.exit_code == 0
     assert (tmp_path / "out" / "SKILL.md").exists()
+
+
+def test_design_non_interactive_from_spec(tmp_path: Path):
+    spec_path = Path("tests/fixtures/crafters/skill/good-skill/.skill-spec.yaml")
+    result = runner.invoke(app, [
+        "skill", "design",
+        "--spec", str(spec_path),
+        "--no-interactive",
+        "--output", str(tmp_path / "designed"),
+    ])
+    assert result.exit_code == 0, result.stdout
+    assert (tmp_path / "designed" / "SKILL.md").exists()
+
+
+def test_design_from_description_minimal(tmp_path: Path):
+    result = runner.invoke(app, [
+        "skill", "design",
+        "demo skill that detects markdown tables in a prompt",
+        "--no-interactive",
+        "--output", str(tmp_path / "desc"),
+    ])
+    assert result.exit_code == 0, result.stdout
+    assert (tmp_path / "desc" / ".skill-spec.yaml").exists()
