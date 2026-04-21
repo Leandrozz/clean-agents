@@ -14,6 +14,7 @@ from clean_agents.crafters.validators.base import (
     ValidatorBase,
     ValidatorRegistry,
 )
+from clean_agents.crafters.validators.semantic import extract_keywords, sniff_language
 
 
 class SkillL1NameDir(ValidatorBase[SkillSpec]):
@@ -176,9 +177,103 @@ class SkillL2HardcodedDates(ValidatorBase[SkillSpec]):
         return out
 
 
+class SkillL2LanguageMix(ValidatorBase[SkillSpec]):
+    level = Level.L2
+    artifact_type = ArtifactType.SKILL
+    rule_id = "SKILL-L2-LANGUAGE-MIX"
+
+    def check(self, spec: SkillSpec, ctx: ValidationContext) -> list[ValidationFinding]:
+        out: list[ValidationFinding] = []
+        for loc, text in _iter_body_text(spec):
+            detected = sniff_language(text)
+            if detected is not None and detected != spec.language:
+                out.append(ValidationFinding(
+                    rule_id=self.rule_id,
+                    severity=Severity.MEDIUM,
+                    message=(
+                        f"block appears to be in {detected!r} but spec.language={spec.language!r}"
+                    ),
+                    location=loc,
+                    fix_hint="Translate or remove mixed-language content.",
+                ))
+        return out
+
+
+class SkillL2TriggerCoverage(ValidatorBase[SkillSpec]):
+    level = Level.L2
+    artifact_type = ArtifactType.SKILL
+    rule_id = "SKILL-L2-TRIGGER-COVERAGE"
+    MIN_COVERAGE = 0.8
+
+    def check(self, spec: SkillSpec, ctx: ValidationContext) -> list[ValidationFinding]:
+        desc_keywords = set(extract_keywords(spec.description))
+        trig_keywords = {t.lower() for t in spec.triggers}
+        if not desc_keywords or not trig_keywords:
+            return []
+        covered = sum(1 for k in desc_keywords if any(k in t or t in k for t in trig_keywords))
+        ratio = covered / max(1, len(desc_keywords))
+        if ratio < self.MIN_COVERAGE:
+            return [ValidationFinding(
+                rule_id=self.rule_id,
+                severity=Severity.MEDIUM,
+                message=f"trigger coverage {ratio:.0%} < {self.MIN_COVERAGE:.0%}",
+                location="spec.triggers",
+                fix_hint="Add triggers that match the distinctive words in the description.",
+            )]
+        return []
+
+
+class SkillL2ProgressiveDisclosure(ValidatorBase[SkillSpec]):
+    level = Level.L2
+    artifact_type = ArtifactType.SKILL
+    rule_id = "SKILL-L2-PROGRESSIVE-DISCLOSURE"
+    WORD_THRESHOLD = 2000
+
+    def check(self, spec: SkillSpec, ctx: ValidationContext) -> list[ValidationFinding]:
+        total_words = sum(len(s.body.split()) for s in spec.body_outline)
+        if total_words > self.WORD_THRESHOLD and not spec.references:
+            return [ValidationFinding(
+                rule_id=self.rule_id,
+                severity=Severity.HIGH,
+                message=(
+                    f"SKILL.md body is {total_words} words with empty references/ — "
+                    "progressive disclosure is violated"
+                ),
+                location="spec.body_outline",
+                fix_hint="Move detailed sections into references/*.md and link from SKILL.md.",
+            )]
+        return []
+
+
+class SkillL2PromisesVsDelivery(ValidatorBase[SkillSpec]):
+    level = Level.L2
+    artifact_type = ArtifactType.SKILL
+    rule_id = "SKILL-L2-PROMISES-VS-DELIVERY"
+
+    def check(self, spec: SkillSpec, ctx: ValidationContext) -> list[ValidationFinding]:
+        if ctx.bundle_root is None:
+            return []
+        out: list[ValidationFinding] = []
+        body_text = " ".join(s.body for s in spec.body_outline)
+        for ref in spec.references:
+            if str(ref.path) in body_text or ref.path.name in body_text:
+                fpath = ctx.bundle_root / ref.path
+                if fpath.exists() and fpath.read_text(encoding="utf-8").strip() == "":
+                    out.append(ValidationFinding(
+                        rule_id=self.rule_id,
+                        severity=Severity.HIGH,
+                        message=f"reference cited in body but file is empty: {ref.path}",
+                        location=str(ref.path),
+                        fix_hint="Populate the file or remove the citation.",
+                    ))
+        return out
+
+
 def register_builtin(registry: ValidatorRegistry) -> None:
     """Called from crafters package init to register L1 validators."""
-    registry.register(SkillL1NameDir())
-    registry.register(SkillL1DescLength())
-    registry.register(SkillL1RefsExist())
-    registry.register(SkillL1RefsOrphan())
+    for cls in (
+        SkillL1NameDir, SkillL1DescLength, SkillL1RefsExist, SkillL1RefsOrphan,
+        SkillL2HardcodedStats, SkillL2HardcodedDates, SkillL2LanguageMix,
+        SkillL2TriggerCoverage, SkillL2ProgressiveDisclosure, SkillL2PromisesVsDelivery,
+    ):
+        registry.register(cls())
