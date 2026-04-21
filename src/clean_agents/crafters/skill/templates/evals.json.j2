@@ -1,0 +1,16 @@
+{
+  "positive_cases": [
+    {% for case in spec.evals.positive_cases -%}
+    {"prompt": {{ case.prompt | tojson }}, "expected": "activate"}{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ],
+  "negative_cases": [
+    {% for case in spec.evals.negative_cases -%}
+    {"prompt": {{ case.prompt | tojson }}, "expected": "ignore"}{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ],
+  "thresholds": {
+    "tpr_min": {{ spec.evals.thresholds.tpr_min }},
+    "fpr_max": {{ spec.evals.thresholds.fpr_max }}
+  }
+}
