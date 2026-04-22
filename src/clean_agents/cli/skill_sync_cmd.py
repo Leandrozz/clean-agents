@@ -82,7 +82,7 @@ def skill_sync_cmd(
         action = _classify(src_bytes, dst)
         plan.append((rel, action, dst, src_bytes))
 
-    table = Table(title=f"skill-sync → {target_dir}")
+    table = Table(title=f"skill-sync -> {target_dir}")
     table.add_column("Action")
     table.add_column("File")
     for rel, action, _, _ in plan:
