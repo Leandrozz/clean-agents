@@ -51,7 +51,8 @@ class TestVersionCommand:
         """Test that --version outputs version info."""
         result = runner.invoke(app, ["--version"])
         assert result.exit_code == 0
-        assert "0.1.0" in result.stdout
+        from clean_agents import __version__
+        assert __version__ in result.stdout
         assert "CLean-agents" in result.stdout
 
 
