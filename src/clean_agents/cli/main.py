@@ -192,6 +192,12 @@ skill_app.command("install", help="Install a skill from the marketplace")(skill_
 skill_app.command("list", help="List installed and/or marketplace skills")(skill_list_cmd)
 app.add_typer(skill_app)
 
+from clean_agents.cli.skill_sync_cmd import skill_sync_cmd  # noqa: E402
+app.command(
+    "skill-sync",
+    help="Install or update the CLean-agents Claude Code skill bundle locally",
+)(skill_sync_cmd)
+
 
 @app.command("serve")
 def serve_cmd(
