@@ -247,6 +247,47 @@ Generate an interactive HTML dashboard with:
 
 Read `references/security-testing.md` for attack payloads, defense patterns, and the dashboard template.
 
+## Crafters: Designing Skills, MCPs, Tools & Plugins
+
+Crafters is the artifact-design arm of CLean-agents (shipping in 0.2.0). Where CLean-shield hardens an agent *after* the blueprint, crafters lets you **design the reusable artifacts** your agents consume: Claude Code Skills (v1, shipping now), MCP servers, tool specs, and plugins (next verticals). Every artifact goes through a design → validate → render loop backed by the same three-layer knowledge base the rest of CLean-agents uses.
+
+### When to dispatch to crafters
+
+Invoke the crafters CLI when the engineer says things like:
+- "Design a skill for our legal-review agent"
+- "Turn this jargon list into a proper Claude Code skill"
+- "Why is my skill not activating reliably?" (→ `skill validate --eval`)
+- "Package my skill as a .skill zip"
+- "Which of these 8 agents need a dedicated skill?" (→ `design --module suggest-artifacts`)
+
+### CLI surface (delegate via subprocess)
+
+```bash
+clean-agents skill design "Legal risk review for NDA jargon" --lang en
+clean-agents skill validate ./my-skill --level L1,L2,L3
+clean-agents skill validate ./my-skill --ai --eval            # AI contradictions + L4 runtime TPR/FPR
+clean-agents skill render ./my-skill.yaml --output ./dist --zip
+clean-agents skill design --for-agent risk_evaluator --blueprint blueprint.yaml
+clean-agents design --blueprint blueprint.yaml --module suggest-artifacts
+clean-agents skill list --installed                           # enumerate installed skills for collision checks
+clean-agents skill publish ./my-skill.yaml --dry-run          # gated by L2/L3 findings
+```
+
+### Validation levels
+
+- **L1** — structural: name/dir match, description length, required sections. Always runs.
+- **L2** — content quality: hard-coded stats, language mixing, trigger coverage, progressive disclosure, AI-backed contradictions (with `--ai`).
+- **L3** — ecosystem: name collision with installed skills, marketplace deduplication, trigger overlap.
+- **L4** — runtime (`--eval`, requires `ANTHROPIC_API_KEY`): simulates activation against positive/negative prompt pairs and reports TPR/FPR against configurable thresholds.
+
+Findings have severities INFO / MEDIUM / HIGH / CRITICAL. `render` and `publish` are blocked on CRITICAL unless `--force`.
+
+### Bidirectional Blueprint integration
+
+Agents declare the artifacts they need via `AgentSpec.recommended_artifacts: [ArtifactRef]`. `design --module suggest-artifacts` auto-proposes skills per agent based on role keywords, closing the loop between blueprint and reusable artifacts.
+
+Read `references/crafters.md` for the full 15-validator catalogue, the `.skill-spec.yaml` schema, the iteration loop, and worked examples of fixing each finding type.
+
 ## Output Format: HTML Artifacts
 
 All visual outputs use a consistent dark-theme HTML template with Mermaid.js. The template includes:
