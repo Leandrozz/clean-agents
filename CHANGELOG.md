@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.2.0] - 2026-04-21
+## [0.2.0] - 2026-04-22
 
 ### Added
 - `src/clean_agents/crafters/` module — design Skills / MCPs / Tools / Plugins (Skills v1).
@@ -11,6 +11,12 @@
 - Optional `crafters` extra (`sentence-transformers>=2.7`). TF-IDF fallback
   preserves offline-first invariant.
 - New entry-point group `clean_agents.validators` for third-party rules.
+- Canonical Claude Code skill bundle shipped with the wheel at
+  `clean_agents/skill_assets/` (SKILL.md + 13 references including the new
+  `crafters.md` deep-dive).
+- CLI: `clean-agents skill-sync` — installs/updates the bundle at
+  `~/.claude/skills/clean-agents` with NEW/UPDATE/UNCHANGED diffing and a
+  `--force` guard for locally-modified files.
 
 ### Changed
 - `AgentSpec` now has `recommended_artifacts: list[ArtifactRef]` (default `[]`).
